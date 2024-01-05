@@ -5,20 +5,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import animation
 import datetime
-# Create a dataset
-# a2D = np.array([[1, 2], [3, 4]])
-# print(a2D)
-# df = pd.DataFrame(a2D, columns=["a","b"])
-# print(df)
-# Default heatmap
-# p1 = sns.heatmap(df)
-# plt.show()
+import tkinter as tk
+from tkinter import filedialog
+from folder_selection_utils import select_file_and_get_path
+# set start and ends for trimming the DF
+# trim point where no change or bad values, etc.
 DF_TRIM_START=20000
-DF_TRIM_END=150000
-new_df=pd.read_csv("temps_real_interpolated.csv")
-# long
-# new_df = new_df.truncate(before=25000,after=150000)
-# short to test
+DF_TRIM_END=230000
+
+filename='temps_real_interpolated'
+new_df=pd.read_csv(filename+'.csv')
+
+# can also trim to short range to test
 new_df = new_df.truncate(before=DF_TRIM_START,after=DF_TRIM_END)
 
 def append_strings(item):
@@ -41,14 +39,9 @@ def print_dataframe_arrays(df):
         print("],",end="")
 
 name_df = pd.read_csv("cellarraycsv.csv")
+# made array in excel that has cell # in index i desire for the heat map
+# then print each value in appropriate index to get the format below, for "get_array_for_row"
 df_modified=name_df.applymap(append_strings)
-# print(df_modified)
-
-
-# print_dataframe_arrays(df_modified)
-# print(new_name_df)
-cell_temp_array_list = []
-
 
 def get_array_for_row(df,row):
     return np.array([[df.at[row,'cell67temp'],df.at[row,'cell66temp'],df.at[row,'cell55temp'],df.at[row,'cell54temp'],df.at[row,'cell43temp'],df.at[row,'cell42temp'],df.at[row,'cell31temp'],df.at[row,'cell30temp'],df.at[row,'cell19temp'],df.at[row,'cell18temp'],df.at[row,'cell7temp'],df.at[row,'cell6temp']],
@@ -58,20 +51,23 @@ def get_array_for_row(df,row):
                      [df.at[row,'cell71temp'],df.at[row,'cell62temp'],df.at[row,'cell59temp'],df.at[row,'cell50temp'],df.at[row,'cell47temp'],df.at[row,'cell38temp'],df.at[row,'cell35temp'],df.at[row,'cell26temp'],df.at[row,'cell23temp'],df.at[row,'cell14temp'],df.at[row,'cell11temp'],df.at[row,'cell2temp']],
                      [df.at[row,'cell72temp'],df.at[row,'cell61temp'],df.at[row,'cell60temp'],df.at[row,'cell49temp'],df.at[row,'cell48temp'],df.at[row,'cell37temp'],df.at[row,'cell36temp'],df.at[row,'cell25temp'],df.at[row,'cell24temp'],df.at[row,'cell13temp'],df.at[row,'cell12temp'],df.at[row,'cell1temp']]])
 
+cell_temp_array_list = []
+
 for index, row in new_df.iterrows():
     new_array=get_array_for_row(new_df,index)
     cell_temp_array_list.append(pd.DataFrame(new_array,columns=["12","11","10","9","8","7","6","5","4","3","2","1"]))
 
+# plotting stuff starts here
 RENDER_SKIP_SPEED=1000
 fig = plt.figure(figsize=(13,7))
 ax=fig.add_subplot(2,4,(1,4))
 ax1=fig.add_subplot(2,4,(5,6))
 ax2=fig.add_subplot(2,4,(7,8))
-# fig,(ax,ax1,ax2) = plt.subplots(3,figsize=(13,7))
+
 ax1_1=ax1.twinx()
 ax2_2=ax2.twinx()
-# ax1_1.get_shared_y_axes().join(ax1_1,ax2_2)
-cmap="jet"
+
+cmap="coolwarm" # this changes the color of the map
 linewidths=1
 linecolor='black'
 center=35
@@ -81,6 +77,8 @@ col = "Pack_Summed_Voltage"
 max_x = new_df.loc[new_df[col].idxmax()]
 print(max_x)
 max_v = (max_x["Pack_Summed_Voltage"])
+new_df["Pack_Current"]=new_df["Pack_Current"].rolling(100).mean()
+new_df["Pack_Summed_Voltage"]=new_df["Pack_Summed_Voltage"].rolling(100).mean()
 new_df["pack_ir"]=round(1000*((max_v - new_df['Pack_Summed_Voltage'])/new_df['Pack_Current']),4)
 new_df["pack_ir"]=new_df['pack_ir'].rolling(100).mean()
 new_df["heat_power"] = new_df['pack_ir']*((new_df['Pack_Current'].rolling(100).mean())**2)
@@ -98,15 +96,18 @@ def init():
 
     ax1_1.plot(new_df['timeSecs'],new_df["Pack_Summed_Voltage"],color='mediumpurple',label="PackV")
     ax1_1.set_ylabel("Pack Voltage")
+    ax1.legend()
+    ax1_1.legend()
 
-    ax2.plot(new_df['timeSecs'],new_df['pack_ir'],color='teal')
+    ax2.plot(new_df['timeSecs'],new_df['pack_ir'],color='teal',label="ir")
     ax2.set_ylim([0,800])
     ax2.set_ylabel("Pack IR (mOhms)")
-    ax2_2.plot(new_df['timeSecs'],new_df['heat_power'],color='darkgoldenrod')
+    
+    ax2_2.plot(new_df['timeSecs'],new_df['heat_power'],color='darkgoldenrod',label='heat')
     ax2_2.set_ylabel("Estimated Pack Heat Power")
-
     ax2.set_xlabel("IR:      Power:     ")
-
+    ax2.legend()
+    ax2_2.legend()
     line = ax1.axvline(x=(new_df.at[(DF_TRIM_START),"timeSecs"]),linestyle='-.',color='black')
     line = ax2.axvline(x=(new_df.at[(DF_TRIM_START),"timeSecs"]),linestyle='-.',color='black')
     fig.tight_layout()
@@ -144,5 +145,5 @@ def animate(i):
 
 fig.suptitle("Battery Pack Thermal Test No Fans")
 anim=animation.FuncAnimation(fig,animate,init_func=init,frames=(len(cell_temp_array_list)//RENDER_SKIP_SPEED),repeat=False,interval=1)
-anim.save('heatmap2.gif', writer='imagemagick', fps=10,dpi=100)
-# plt.show()
+anim.save('heatmap'+filename+'.gif', writer='imagemagick', fps=10,dpi=100)
+plt.show()
