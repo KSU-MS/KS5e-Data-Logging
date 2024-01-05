@@ -13,8 +13,8 @@ import datetime
 # Default heatmap
 # p1 = sns.heatmap(df)
 # plt.show()
-DF_TRIM_START=10000
-DF_TRIM_END=200000
+DF_TRIM_START=20000
+DF_TRIM_END=150000
 new_df=pd.read_csv("temps_real_interpolated.csv")
 # long
 # new_df = new_df.truncate(before=25000,after=150000)
@@ -63,16 +63,54 @@ for index, row in new_df.iterrows():
     cell_temp_array_list.append(pd.DataFrame(new_array,columns=["12","11","10","9","8","7","6","5","4","3","2","1"]))
 
 RENDER_SKIP_SPEED=1000
-
-fig,ax = plt.subplots()
+fig = plt.figure(figsize=(13,7))
+ax=fig.add_subplot(2,4,(1,4))
+ax1=fig.add_subplot(2,4,(5,6))
+ax2=fig.add_subplot(2,4,(7,8))
+# fig,(ax,ax1,ax2) = plt.subplots(3,figsize=(13,7))
+ax1_1=ax1.twinx()
+ax2_2=ax2.twinx()
+# ax1_1.get_shared_y_axes().join(ax1_1,ax2_2)
 cmap="jet"
 linewidths=1
 linecolor='black'
+center=35
+new_df["timeSecs"]=new_df["Time"]/1000
+
+col = "Pack_Summed_Voltage"
+max_x = new_df.loc[new_df[col].idxmax()]
+print(max_x)
+max_v = (max_x["Pack_Summed_Voltage"])
+new_df["pack_ir"]=round(1000*((max_v - new_df['Pack_Summed_Voltage'])/new_df['Pack_Current']),4)
+new_df["pack_ir"]=new_df['pack_ir'].rolling(100).mean()
+new_df["heat_power"] = new_df['pack_ir']*((new_df['Pack_Current'].rolling(100).mean())**2)
+
 def init():
     s=sns.heatmap(np.zeros((6, 12)),annot=True,fmt=".1f",vmin=10,vmax=80,
                   square=True,ax=ax,cbar=False,cmap=cmap,
-                  linewidths=linewidths,linecolor=linecolor)
-    s.set_xlabel("Time:")
+                  linewidths=linewidths,linecolor=linecolor,
+                  center=center)
+    ax.set_title("Pack Cells Heat Map")
+    ax1.set_title("Battery Pack Current")
+    ax1.set_xlabel("Time:      Current:     ")
+    ax1.set_ylabel("Current (Amps)")
+    ax1.plot(new_df["timeSecs"],new_df["Pack_Current"],color='tomato',label="PackI")
+
+    ax1_1.plot(new_df['timeSecs'],new_df["Pack_Summed_Voltage"],color='mediumpurple',label="PackV")
+    ax1_1.set_ylabel("Pack Voltage")
+
+    ax2.plot(new_df['timeSecs'],new_df['pack_ir'],color='teal')
+    ax2.set_ylim([0,800])
+    ax2.set_ylabel("Pack IR (mOhms)")
+    ax2_2.plot(new_df['timeSecs'],new_df['heat_power'],color='darkgoldenrod')
+    ax2_2.set_ylabel("Estimated Pack Heat Power")
+
+    ax2.set_xlabel("IR:      Power:     ")
+
+    line = ax1.axvline(x=(new_df.at[(DF_TRIM_START),"timeSecs"]),linestyle='-.',color='black')
+    line = ax2.axvline(x=(new_df.at[(DF_TRIM_START),"timeSecs"]),linestyle='-.',color='black')
+    fig.tight_layout()
+
 
 def animate(i):
     data = cell_temp_array_list[i*RENDER_SKIP_SPEED]
@@ -80,12 +118,31 @@ def animate(i):
     ax.cla()
     s=sns.heatmap(data,annot=data,fmt=".1f",vmin=10,vmax=80,
                   square=True,ax=ax,cbar=False,cmap=cmap,
-                  linewidths=linewidths,linecolor=linecolor)
+                  linewidths=linewidths,linecolor=linecolor,
+                  center=center)
     timestamp=str(datetime.datetime.fromtimestamp((new_df.at[(DF_TRIM_START+(i*RENDER_SKIP_SPEED)),"Time"])//1000))
     current=str(round(new_df.at[(DF_TRIM_START+(i*RENDER_SKIP_SPEED)),"Pack_Current"],1))
     # print(timestamp)
-    s.set_xlabel("Time: " + timestamp+" Current: " + current)
+    ax1.set_xlabel("Time: " + timestamp+" Current: " + current+"A")
+    try:
+        ax1.lines[1].remove()
+    except:
+        print(ax1.lines)
+        pass
+    line = ax1.axvline(x=(new_df.at[(DF_TRIM_START+(i*RENDER_SKIP_SPEED)),"timeSecs"]),linestyle='-.',color='black')
+    ir=str(round(new_df.at[(DF_TRIM_START+(i*RENDER_SKIP_SPEED)),'pack_ir'],1))
+    power=str(round(new_df.at[(DF_TRIM_START+(i*RENDER_SKIP_SPEED)),'heat_power'],1))
 
-anim=animation.FuncAnimation(fig,animate,init_func=init,frames=(len(cell_temp_array_list)//RENDER_SKIP_SPEED),repeat=False,interval=300)
-anim.save('heatmap2.gif', writer='imagemagick', fps=10)
-plt.show()
+    ax2.set_xlabel("IR: " + ir+"mOhms" + " Power: " + power+"W")
+
+    try:
+        ax2.lines[1].remove()
+    except:
+        print(ax2.lines)
+        pass
+    line = ax2.axvline(x=(new_df.at[(DF_TRIM_START+(i*RENDER_SKIP_SPEED)),"timeSecs"]),linestyle='-.',color='black')
+
+fig.suptitle("Battery Pack Thermal Test No Fans")
+anim=animation.FuncAnimation(fig,animate,init_func=init,frames=(len(cell_temp_array_list)//RENDER_SKIP_SPEED),repeat=False,interval=1)
+anim.save('heatmap2.gif', writer='imagemagick', fps=10,dpi=100)
+# plt.show()
