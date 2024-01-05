@@ -14,6 +14,18 @@ def select_folder_and_get_path():
         print("No folder selected")
         return None
 
+def select_file_and_get_path():
+    root = tk.Tk()
+    root.withdraw()  # Hide the main window
+
+    file_path = filedialog.askopenfile()
+    
+    if file_path:
+        print(f"Selected file path: {file_path}")
+        return file_path
+    else:
+        print("No file selected")
+        return None
 # # Call the method to select a folder and get its path
 # selected_folder_path = select_folder_and_get_path()
 
