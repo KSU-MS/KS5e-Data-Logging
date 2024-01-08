@@ -5,19 +5,27 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import animation
 import datetime
-import tkinter as tk
-from tkinter import filedialog
 from folder_selection_utils import select_file_and_get_path
+from plot_slider import Player
+import time
 # set start and ends for trimming the DF
 # trim point where no change or bad values, etc.
 DF_TRIM_START=20000
-DF_TRIM_END=230000
+DF_TRIM_END=40000
+import_start=time.perf_counter()
 
 filename='temps_real_interpolated'
 new_df=pd.read_csv(filename+'.csv')
 
+import_end = time.perf_counter()
+ms = (import_end-import_start) * 10**6
+print(f"Import CSV:\n start: {import_start:.02f}\t end: {import_end:.02f}\t elapsed {ms:.03f} micro secs.")
 # can also trim to short range to test
+import_start=time.perf_counter()
 new_df = new_df.truncate(before=DF_TRIM_START,after=DF_TRIM_END)
+import_end=time.perf_counter()
+ms = (import_end-import_start) * 10**6
+print(f"Truncate CSV:\n start: {import_start:.02f}\t end: {import_end:.02f}\t elapsed {ms:.03f} micro secs.")
 
 def append_strings(item):
     return 'cell' + str(item) + 'temp'
@@ -60,9 +68,10 @@ for index, row in new_df.iterrows():
 # plotting stuff starts here
 RENDER_SKIP_SPEED=1000
 fig = plt.figure(figsize=(13,7))
-ax=fig.add_subplot(2,4,(1,4))
-ax1=fig.add_subplot(2,4,(5,6))
-ax2=fig.add_subplot(2,4,(7,8))
+ax=fig.add_subplot(6,6,(1,12))
+ax1=fig.add_subplot(6,6,(13,24))
+ax2=fig.add_subplot(6,6,(25,33))
+ax3=fig.add_subplot(6,6,(28,36))
 
 ax1_1=ax1.twinx()
 ax2_2=ax2.twinx()
@@ -70,25 +79,34 @@ ax2_2=ax2.twinx()
 cmap="coolwarm" # this changes the color of the map
 linewidths=1
 linecolor='black'
+spacewidth=5
 center=35
+custom_xlim=(((new_df.at[(DF_TRIM_START),"Time"])//1000),((new_df.at[(DF_TRIM_END),"Time"])//1000))
+for axes in fig.get_axes():
+    ax.set_xlim(custom_xlim)
+
 new_df["timeSecs"]=new_df["Time"]/1000
 
 col = "Pack_Summed_Voltage"
 max_x = new_df.loc[new_df[col].idxmax()]
-print(max_x)
 max_v = (max_x["Pack_Summed_Voltage"])
+print(max_v)
 new_df["Pack_Current"]=new_df["Pack_Current"].rolling(100).mean()
 new_df["Pack_Summed_Voltage"]=new_df["Pack_Summed_Voltage"].rolling(100).mean()
 new_df["pack_ir"]=round(1000*((max_v - new_df['Pack_Summed_Voltage'])/new_df['Pack_Current']),4)
 new_df["pack_ir"]=new_df['pack_ir'].rolling(100).mean()
-new_df["heat_power"] = new_df['pack_ir']*((new_df['Pack_Current'].rolling(100).mean())**2)
+new_df["heat_power"] = (new_df['pack_ir']/1000)*((new_df['Pack_Current'].rolling(100).mean())**2)
 
 def init():
-    s=sns.heatmap(np.zeros((6, 12)),annot=True,fmt=".1f",vmin=10,vmax=80,
-                  square=True,ax=ax,cbar=False,cmap=cmap,
+    data = np.zeros((6, 12))
+    s=sns.heatmap(data=data,annot=True,fmt=".1f",vmin=10,vmax=80,
+                  square=False,ax=ax,cbar=False,cmap=cmap,
                   linewidths=linewidths,linecolor=linecolor,
                   center=center)
     ax.set_title("Pack Cells Heat Map")
+    for length in range(data.shape[1]):
+        if (length % 2) == 0:
+            ax.axvline(length,color='white',lw=spacewidth)
     ax1.set_title("Battery Pack Current")
     ax1.set_xlabel("Time:      Current:     ")
     ax1.set_ylabel("Current (Amps)")
@@ -99,8 +117,9 @@ def init():
     ax1.legend()
     ax1_1.legend()
 
+    ax2.set_title("Pack Internal Resistance and Heat Power")
     ax2.plot(new_df['timeSecs'],new_df['pack_ir'],color='teal',label="ir")
-    ax2.set_ylim([0,800])
+    ax2.set_ylim([0,1200])
     ax2.set_ylabel("Pack IR (mOhms)")
     
     ax2_2.plot(new_df['timeSecs'],new_df['heat_power'],color='darkgoldenrod',label='heat')
@@ -108,8 +127,14 @@ def init():
     ax2.set_xlabel("IR:      Power:     ")
     ax2.legend()
     ax2_2.legend()
+
+    ax3.set_title("Min and Max Cell Temp")
+    ax3.plot(new_df["timeSecs"],new_df["High_Temperature"].rolling(100).mean(),color='red',label="Max Temp")
+    ax3.plot(new_df["timeSecs"],new_df["Low_Temperature"].rolling(100).mean(),label="Min Temp")
+    ax3.set_xlabel("High Temp:      Low Temp:     ")
     line = ax1.axvline(x=(new_df.at[(DF_TRIM_START),"timeSecs"]),linestyle='-.',color='black')
     line = ax2.axvline(x=(new_df.at[(DF_TRIM_START),"timeSecs"]),linestyle='-.',color='black')
+    line = ax3.axvline(x=(new_df.at[(DF_TRIM_START),"timeSecs"]),linestyle='-.',color='black')
     fig.tight_layout()
 
 
@@ -118,9 +143,14 @@ def animate(i):
     # print(data)
     ax.cla()
     s=sns.heatmap(data,annot=data,fmt=".1f",vmin=10,vmax=80,
-                  square=True,ax=ax,cbar=False,cmap=cmap,
+                  square=False,ax=ax,cbar=False,cmap=cmap,
                   linewidths=linewidths,linecolor=linecolor,
                   center=center)
+
+    for length in range(data.shape[1]):
+        if (length % 2) == 0:
+            ax.axvline(length,color='white',lw=spacewidth)
+
     timestamp=str(datetime.datetime.fromtimestamp((new_df.at[(DF_TRIM_START+(i*RENDER_SKIP_SPEED)),"Time"])//1000))
     current=str(round(new_df.at[(DF_TRIM_START+(i*RENDER_SKIP_SPEED)),"Pack_Current"],1))
     # print(timestamp)
@@ -131,6 +161,7 @@ def animate(i):
         print(ax1.lines)
         pass
     line = ax1.axvline(x=(new_df.at[(DF_TRIM_START+(i*RENDER_SKIP_SPEED)),"timeSecs"]),linestyle='-.',color='black')
+
     ir=str(round(new_df.at[(DF_TRIM_START+(i*RENDER_SKIP_SPEED)),'pack_ir'],1))
     power=str(round(new_df.at[(DF_TRIM_START+(i*RENDER_SKIP_SPEED)),'heat_power'],1))
 
@@ -141,9 +172,28 @@ def animate(i):
     except:
         print(ax2.lines)
         pass
+
     line = ax2.axvline(x=(new_df.at[(DF_TRIM_START+(i*RENDER_SKIP_SPEED)),"timeSecs"]),linestyle='-.',color='black')
 
+    high=str(round(new_df.at[(DF_TRIM_START+(i*RENDER_SKIP_SPEED)),'High_Temperature'],1))
+    low=str(round(new_df.at[(DF_TRIM_START+(i*RENDER_SKIP_SPEED)),'Low_Temperature'],1))
+
+    ax3.set_xlabel("Max Temp: "+high+" Min Temp: "+low)
+    try:
+        ax3.lines[2].remove()
+    except:
+        print(ax3.lines)
+        pass
+
+    line = ax3.axvline(x=(new_df.at[(DF_TRIM_START+(i*RENDER_SKIP_SPEED)),"timeSecs"]),linestyle='-.',color='black')
+
+
 fig.suptitle("Battery Pack Thermal Test No Fans")
-anim=animation.FuncAnimation(fig,animate,init_func=init,frames=(len(cell_temp_array_list)//RENDER_SKIP_SPEED),repeat=False,interval=1)
-anim.save('heatmap'+filename+'.gif', writer='imagemagick', fps=10,dpi=100)
+normal_anim = False
+if normal_anim == True:
+    anim=animation.FuncAnimation(fig,animate,init_func=init,frames=(len(cell_temp_array_list)//RENDER_SKIP_SPEED),repeat=False,interval=1)
+    anim.save('heatmap'+filename+'.gif', writer='imagemagick', fps=10,dpi=100)
+else:
+    frames=(len(cell_temp_array_list)//RENDER_SKIP_SPEED)
+    anim=Player(fig,animate,init_func=init,frames=frames,repeat=False,interval=1,maxi=frames-1)
 plt.show()
