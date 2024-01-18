@@ -19,6 +19,7 @@ jobs:
       
     - name: Run pyinstaller
       run: 
+        pip freeze
         pyinstaller ./parser_exe.py
 
     - uses: actions/checkout@v2
