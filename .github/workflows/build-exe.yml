@@ -29,13 +29,13 @@ jobs:
         pyinstaller ./parser_exe.py
     - name: test
       run: |
-        ls -p
+        ls -p -r
         echo "build"
         cd build
-        ls -p
+        ls -p -r
         echo "exe"
         cd parser_exe
-        ls -p
+        ls -p -r
 
     - uses: actions/upload-artifact@v2
       with:
