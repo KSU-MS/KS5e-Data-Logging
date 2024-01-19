@@ -20,7 +20,6 @@ import os
 import sys
 from multipliers import Multipliers
 from datetime import datetime
-from folder_selection_utils import select_folder_and_get_path
 import cantools
 import pandas as pd
 import csv
@@ -1236,7 +1235,7 @@ def parse_file(filename,dbc):
     outfile2.close()
     return
 
-def parse_folder():
+def parse_folder(input_path):
     '''
     @brief: Locates Raw_Data directory or else throws errors. Created Parsed_Data directory if not created.
             Calls the parse_file() function on each raw CSV and alerts the user of parsing progress.
@@ -1248,7 +1247,7 @@ def parse_folder():
         print("FATAL ERROR: DBC Files folder does not exist. Please move parser.py or create Raw_Data folder.")
         sys.exit(0)
     dbc_file = get_dbc_files()
-    newpath = select_folder_and_get_path()
+    newpath = input_path
     print("Current path is: " + str(newpath))
     os.chdir(newpath)
     # Stop attempting to parse if Raw_Data is not there.
