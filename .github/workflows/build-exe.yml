@@ -26,7 +26,7 @@ jobs:
         
     - name: run pyinstaller
       run: |
-        pyinstaller ./parser_exe.py
+        pyinstaller --onefile ./parser_exe.py
     - name: test
       run: |
         ls -R
