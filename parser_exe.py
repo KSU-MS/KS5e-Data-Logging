@@ -1,7 +1,7 @@
 import sys
 sys.path.insert(1, "../telemetry_parsers")
 from parser_api import *
-
+from folder_selection_utils import select_folder_and_get_path
 ########################################################################
 # Entry Point to Framework
 ########################################################################
@@ -10,7 +10,7 @@ print("The process will be of two parts: CSV to CSV parsing, and then CSV to MAT
 print("The entire process will take about 5 mins for a test session's worth of data.")
 print("----------------------------------------------------------------------------------")
 print("Beginning CSV to CSV parsing...")
-parse_folder()
+parse_folder(select_folder_and_get_path())
 print("Finished CSV to CSV parsing.")
 print("----------------------------------------------------------------------------------")
 print("Beginning CSV to MAT parsing...")
