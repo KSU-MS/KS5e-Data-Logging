@@ -30,10 +30,10 @@ jobs:
     - name: test
       run: |
         ls -p
+        echo "build"
         cd build
         ls -p
-        cd parser_exe
-        ls -p
+        echo "exe"
         cd parser_exe
         ls -p
 
@@ -42,4 +42,4 @@ jobs:
         name: parser-exe
         path: |
           ./dist/windows/parser_exe/*.exe
-          ./build/parser_exe/parser_exe/*
+          ./build/parser_exe/*
