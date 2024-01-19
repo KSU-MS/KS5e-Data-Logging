@@ -32,7 +32,7 @@ jobs:
     #     ls -R
         
     - name: pyinstaller
-      uses: JackMcKew/pyinstaller-action-windows@main
+      uses: mathbrook/pyinstaller-action-windows@main
       with:
         path: .
 
