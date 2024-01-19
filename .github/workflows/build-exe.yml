@@ -2,9 +2,9 @@ name: Package exe with PyInstaller - Windows
 
 on:
   push:
-    branches: [ dbc-gen ]
+    branches: "**"
   pull_request:
-    branches: [ dbc-gen ]
+    branches: "**"
 
 jobs:
   build:
