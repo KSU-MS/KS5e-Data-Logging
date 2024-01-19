@@ -12,11 +12,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-    - name: PyInstaller Windows
-      uses: JackMcKew/pyinstaller-action-windows@python3-10-pyinstaller-5-3
+    - name: checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
       with:
-        path: ./
+        python-version: '3.8'  # Replace '3.x' with your Python version
+      
+    - name: run pyinstaller
+      run:
+        pyinstaller ./parser_exe.py
 
     - uses: actions/upload-artifact@v2
       with:
