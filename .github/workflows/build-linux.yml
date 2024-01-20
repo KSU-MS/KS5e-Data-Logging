@@ -33,6 +33,10 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
+    - name: get dbc from latest release
+      uses: pozetroninc/github-action-get-latest-release@master
+      with:
+        repository: KSU-MS/ksu-ms-dbc
         
     - name: run pyinstaller
       run: |
