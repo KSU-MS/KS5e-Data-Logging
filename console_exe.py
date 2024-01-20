@@ -11,7 +11,6 @@ import threading
 from os import path
 from enum import Enum
 from datetime import datetime
-import paho.mqtt.client as mqtt
 import itertools
 import binascii
 import struct
@@ -31,6 +30,23 @@ parser.add_argument('--body_size', '-bs', action='store', default='10', required
 
 args = parser.parse_args()
 
+def telem_parse_message(id, data, db):
+    labels=[]
+    values=[]
+    units=[]
+    try:
+        actual_message = db.get_message_by_frame_id(int(id,16))
+        for signal in actual_message.signals:
+            units.append(str(signal.unit))
+        parsed_message = db.decode_message(int(id,16),bytearray.fromhex(data),decode_choices=False)
+        for i in parsed_message:
+            message_label = str(i)
+            labels.append(message_label)
+            values.append(str(round(parsed_message[i],3)))
+        message_name = actual_message.name
+        return [message_name,labels,values,units]
+    except:
+        return "INVALID_ID"
 class ReadLine:
     def __init__(self, s):
         self.buf = bytearray()
@@ -298,7 +314,7 @@ def read_from_teensy_thread(window, comport):
             length = 8
             # raw_message = raw_message[:(int(length) * 2)] # Strip trailing end of line/file characters that may cause bad parsing
             # raw_message = raw_message.zfill(16) # Sometimes messages come truncated if 0s on the left. Append 0s so field-width is 16.
-            table = parse_message(raw_id, raw_message,db,dbc_ids,unknown_ids)
+            table = telem_parse_message(raw_id, raw_message,db)
             #print(table)
             if table != "INVALID_ID" and table != "UNPARSEABLE":
                 for i in range(len(table[1])):
@@ -329,7 +345,7 @@ def read_from_csv_thread(window):
     window.write_event_value("-Test Connection Success-", "good job!")
 
     while line_count < len(raw_data_lines):
-        print("Linecount: "+ str(line_count))
+        # print("Linecount: "+ str(line_count))
         raw_id = raw_data_lines[line_count].split(",")[1]
         length = raw_data_lines[line_count].split(",")[2]
         raw_message = raw_data_lines[line_count].split(",")[3]
