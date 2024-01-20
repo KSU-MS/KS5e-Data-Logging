@@ -3,7 +3,7 @@ name: generate DBC and C code
 on:
   push:
     branches:
-      - dbc-gen  # Replace 'main' with your main branch name a
+      - main  # Replace 'main' with your main branch name a
 
 jobs:
   build:
@@ -13,23 +13,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4  # This action checks out your repository's code
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.8'  # Replace '3.x' with your Python version
-      - name: install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          
-
-      - name: Run Python script
-        run: |
-          git status 
-          python json_to_dbc.py ksu_dbc # Replace 'your_script.py' with your script's filename
-
-      # - name: Run executable
-      #   run: ./your_executable  # Replace 'your_executable' with your executable's filename
       - name: Get current date and time
         id: date
         run: echo "::set-output name=date::$(date +'%Y-%m-%dT%H_%M_%S')"
@@ -37,14 +20,5 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name }}-${{ steps.date.outputs.date }} 
-          files: | 
-            ksu_dbc.dbc
-
-      - name: Publish artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: dbc_files
-          path: |
-            ksu_dbc.c
-            ksu_dbc.h
-            ksu_dbc.dbc
+          files: |
+            ./*
