@@ -18,7 +18,6 @@ parse_folder --> parse_file --> parse_time
 # Imports
 import os
 import sys
-from multipliers import Multipliers
 from datetime import datetime
 import cantools
 import pandas as pd
