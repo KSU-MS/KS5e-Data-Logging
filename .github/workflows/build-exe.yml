@@ -1,10 +1,10 @@
-name: Package exe with PyInstaller - Windows
+name: build windows executable
 
 on:
   push:
-    branches: [ dbc-gen ]
+    branches: "**"
   pull_request:
-    branches: [ dbc-gen ]
+    branches: "**"
 
 jobs:
   build:
@@ -12,13 +12,49 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-    - name: PyInstaller Windows
-      uses: JackMcKew/pyinstaller-action-windows@python3-10-pyinstaller-5-3
+    - name: checkout code
+      uses: actions/checkout@v2
+      
+    # - name: Get current date and time
+    #   id: date
+    #   run: echo "::set-output name=date::$(date +'%Y-%m-%dT%H_%M_%S')"
+    # - name: Release
+    #   uses: softprops/action-gh-release@v1
+    #   with:
+    #     tag_name: ${{ github.ref_name }}-${{ steps.date.outputs.date }} 
+    #     files: ./*
+        
+    # - name: Set up Python
+    #   uses: actions/setup-python@v2
+    #   with:
+    #     python-version: '3.8'  # Replace '3.x' with your Python version
+        
+    # - name: install dependencies
+    #   run: |
+    #     python -m pip install --upgrade pip
+    #     pip install -r requirements.txt
+        
+    # - name: run pyinstaller
+    #   run: |
+    #     pyinstaller --onefile ./parser_exe.py
+    # - name: check what files we cooked up
+    #   run: |
+    #     ls -R
+        
+    - name: run pyinstaller
+      uses: mathbrook/pyinstaller-action-windows@python310
       with:
-        path: ./
-
-    - uses: actions/upload-artifact@v2
+        path: .
+    - name: upload artifacts
+      uses: actions/upload-artifact@v2
       with:
-        name: parser-exe
-        path: ./dist/windows/parser_exe/*.exe # or path/to/artifact
+        name: parser-exe-windows
+        path: |
+          ./dist/windows/*
+          
+    # - uses: actions/upload-artifact@v2
+    #   with:
+    #     name: parser-exe-linux
+    #     path: |
+    #       ./build/*
+    #       ./dist/parser_exe
