@@ -10,7 +10,7 @@ newpath = os.path.join(os.getcwd(),"scipy.libs")
 
 a = Analysis(
     ['parser_exe.py'],
-    pathex=[newpath],
+    pathex=['C:\\Python310\\lib\\site-packages\\scipy.libs'],
     binaries=[],
     datas=[],
     hiddenimports=[],
