@@ -27,10 +27,10 @@ import shutil
 
 DEBUG = False # Set True for option error print statements
 
-def get_dbc_files() -> cantools.db.Database:
+def get_dbc_files(path_name='dbc-files') -> cantools.db.Database:
     # Get all the DBC files for parsing and add them together
     try:
-        path_name = 'DBC_Files'
+        path_name = path_name
         file_path = []
         file_count = 0
         for root, dirs, files in os.walk(path_name, topdown=False):
@@ -41,6 +41,7 @@ def get_dbc_files() -> cantools.db.Database:
                     file_count += 1
     except:
         print('FATAL ERROR: Process failed at step 1.')
+        input("press enter to exit")
         sys.exit(0)
     mega_dbc=cantools.database.Database()
     for filename in file_path:
@@ -164,8 +165,8 @@ def parse_file(filename,dbc):
 
 
     infile = open(filename, "r")
-    outfile = open("Parsed_Data/" + filename, "w")
-    outfile2 = open("Better_Parsed_Data/Better" + filename, "w")
+    outfile = open("temp-parsed-data/" + filename, "w")
+    outfile2 = open("parsed-data/parsed" + filename, "w")
 
     flag_second_line = True
     flag_first_line = True
@@ -240,31 +241,25 @@ def parse_folder(input_path):
     @return: N/A
     '''
     # Stop attempting to parse if DBC folder is not there.
-    if not os.path.exists("DBC_Files"):
-        print("FATAL ERROR: DBC Files folder does not exist. Please move parser.py or create Raw_Data folder.")
+    if not os.path.exists("dbc-files"):
+        print("FATAL ERROR: 'dbc-files' folder does not exist.")
+        input("press enter to exit")
         sys.exit(0)
-    dbc_file = get_dbc_files()
+    dbc_file = get_dbc_files('dbc-files')
     newpath = input_path
-    print("Current path is: " + str(newpath))
+    print("Selected path is: " + str(newpath))
     os.chdir(newpath)
-    # Stop attempting to parse if Raw_Data is not there.
-    # if not os.path.exists("Raw_Data"):
-    #     print("FATAL ERROR: Raw_Data folder does not exist. Please move parser.py or create Raw_Data folder.")
-    #     sys.exit(0)
-
-    # # Stop attempting to parse if DBC folder is not there.
-    # if not os.path.exists("DBC_Files"):
-    #     print("FATAL ERROR: DBC Files folder does not exist. Please move parser.py or create Raw_Data folder.")
-    #     sys.exit(0)
+    print("Current path is: " + os.getcwd())
+    
 
     # Creates Parsed_Data folder if not there.
-    if not os.path.exists("Parsed_Data"):
-        os.makedirs("Parsed_Data")
+    if not os.path.exists("temp-parsed-data"):
+        os.makedirs("temp-parsed-data")
         # Creates Parsed_Data folder if not there.
-    if not os.path.exists("Better_Parsed_Data"):
-        os.makedirs("Better_Parsed_Data")
+    if not os.path.exists("parsed-data"):
+        os.makedirs("parsed-data")
     # Generate the main DBC file object for parsing
-    # dbc_file = get_dbc_files()
+
     # Loops through files and call parse_file on each raw CSV.
     for file in os.listdir(newpath):
         filename = os.fsdecode(file)
@@ -304,7 +299,7 @@ from datetime import datetime
 from scipy.io import savemat
 
 
-def read_files():
+def read_files(folder):
     '''
     @brief: Reads parsed data files from Parsed_Data folder and returns a 
             list of file paths (as strings)
@@ -312,7 +307,7 @@ def read_files():
     @return: None
     '''
     try:
-        path_name = 'Parsed_Data'
+        path_name = folder
 
         file_path = []
         file_count = 0
@@ -324,9 +319,10 @@ def read_files():
                     file_count += 1
     except:
         print('FATAL ERROR: Process failed at step 1.')
+        input("press enter to exit")
         sys.exit(0)
 
-    print('Step 1: found ' + str(file_count) + ' files in the Parsed_Data folder')
+    print('Step 1: found ' + str(file_count) + ' files in the ' + path_name + ' folder')
     return file_path
 
 def create_dataframe(files = []):
@@ -343,6 +339,7 @@ def create_dataframe(files = []):
             df_list.append(df)
     except:
         print('FATAL ERROR: Process failed at step 2.')
+        input("press enter to exit")
         sys.exit(0)
 
     print('Step 2: created dataframes')
@@ -385,6 +382,7 @@ def get_time_elapsed(frames = []):
                 continue
     except:
         print('FATAL ERROR: Process failed at step 3.')
+        input("press enter to exit")
         sys.exit(0)
 
     print('Step 3: calculated elapsed time')
@@ -440,6 +438,7 @@ def create_struct(frames = []):
 
     except:
         print('FATAL ERROR: Process failed at step 4.')
+        input("press enter to exit")
         sys.exit(0)
 
     print('Step 4: created struct')
@@ -462,16 +461,20 @@ def create_mat():
     @return: N/A
     '''
     print("Step 0: starting...")
-    csv_files = read_files()
+    csv_files = read_files('temp-parsed-data')
     frames_list = create_dataframe(csv_files)
     frames_list1 = get_time_elapsed(frames_list)
     struct1 = create_struct(frames_list1)
     struct2 = transpose_all(struct1)
 
     try:
-        savemat('output.mat', {'S': struct2}, long_field_names=True)
+        savemat('parsed-data/output.mat', {'S': struct2}, long_field_names=True)
         print('Saved struct in output.mat file.')
     except:
         print('FATAL ERROR: Failed to create .mat file')
+    try:
+        shutil.rmtree("temp-parsed-data")
+    except:
+        pass
 
 

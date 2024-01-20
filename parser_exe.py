@@ -5,11 +5,11 @@ from folder_selection_utils import select_folder_and_get_path
 ########################################################################
 # Entry Point to Framework
 ########################################################################
-print("Welcome to HyTech 2022 Parsing Framework")
+print("Welcome to KSU motorsports parser")
 print("The process will be of two parts: CSV to CSV parsing, and then CSV to MAT parsing.")
-print("The entire process will take about 5 mins for a test session's worth of data.")
 print("----------------------------------------------------------------------------------")
 print("Beginning CSV to CSV parsing...")
+print("Select a folder which contains the raw logs to be parsed")
 parse_folder(select_folder_and_get_path())
 print("Finished CSV to CSV parsing.")
 print("----------------------------------------------------------------------------------")
@@ -18,3 +18,4 @@ create_mat()
 print("Finished CSV to MAT parsing.")
 print("----------------------------------------------------------------------------------")
 print("SUCCESS: Parsing Complete.")
+input("press enter to exit")

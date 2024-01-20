@@ -289,7 +289,7 @@ def user_prompt(prompt,options):
     return values[0]
 
 def read_from_teensy_thread(window, comport):
-    db = get_dbc_files()
+    db = get_dbc_files('dbc-files')
     dbc_ids = print_all_the_shit_in_dbc_file(db)
     unknown_ids=[]
     ser = serial.Serial()
@@ -336,7 +336,7 @@ def read_from_teensy_thread(window, comport):
 @param[in]: window - the PySimpleGUI window object
 '''
 def read_from_csv_thread(window):
-    db = get_dbc_files()
+    db = get_dbc_files('dbc-files')
     dbc_ids = print_all_the_shit_in_dbc_file(db)
     unknown_ids=[]
     infile = open("raw_data.csv", "r")
