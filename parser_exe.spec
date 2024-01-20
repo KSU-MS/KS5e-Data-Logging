@@ -1,9 +1,16 @@
 # -*- mode: python ; coding: utf-8 -*-
+import os
+import scipy
 
+os.chdir(os.path.dirname(scipy.__file__))
+
+os.chdir(os.path.normpath(os.getcwd() + os.sep + os.pardir))
+
+newpath = os.path.join(os.getcwd(),"scipy.libs")
 
 a = Analysis(
     ['parser_exe.py'],
-    pathex=[],
+    pathex=[newpath],
     binaries=[],
     datas=[],
     hiddenimports=[],
