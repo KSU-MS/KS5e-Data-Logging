@@ -6,11 +6,7 @@
 
 
 """
-@Author: Bo Han Zhu
-@Date: 1/15/2022
-@Description: HyTech custom python parser functions.
-@TODO: Dashboard_status is not correct. Need more data to validate bit ordering.
-
+TODO: update this workflow to be accurate with dbc parsing methods
 parse_folder --> parse_file --> parse_time
                             --> parse_message --> parse_ID_XXXXXXXXX
 """
@@ -40,7 +36,8 @@ def get_dbc_files(path_name='dbc-files') -> cantools.db.Database:
                     file_path.append(fp)
                     file_count += 1
     except:
-        print('FATAL ERROR: Process failed at step 1.')
+        print('FATAL ERROR: dbc scraping failed')
+        print('get_dbc_files('+path_name+')')
         input("press enter to exit")
         sys.exit(0)
     mega_dbc=cantools.database.Database()
@@ -48,7 +45,7 @@ def get_dbc_files(path_name='dbc-files') -> cantools.db.Database:
         with open (filename, 'r') as newdbc:
             mega_dbc.add_dbc(newdbc)
 
-    print('Step 1: found ' + str(file_count) + ' files in the DBC files folder')
+    print('Step 1: found ' + str(file_count) + ' files in the dbc-files folder')
     return mega_dbc
 
 def print_all_the_shit_in_dbc_file(db):
@@ -149,6 +146,7 @@ def parse_file(filename,dbc):
     @input: The filename of the raw and parsed CSV.
     @return: N/A
     '''
+    print("start parsing: "+filename)
     # Delete any lines that contain this blank glitchy CAN message of ID 0 and data 0
     specified_string = ',0,8,0000000000000000'  # Replace with the specified string to be removed
     delete_lines_containing_string(filename,specified_string)
@@ -218,7 +216,6 @@ def parse_file(filename,dbc):
                 continue
             elif flag_second_line==True:
                 flag_second_line = False
-                print("Second Line")
                 continue
             elif time != last_time:
                 # write our line to file
@@ -233,19 +230,13 @@ def parse_file(filename,dbc):
     outfile2.close()
     return
 
-def parse_folder(input_path):
+def parse_folder(input_path,dbc_file: cantools.db.Database):
     '''
     @brief: Locates Raw_Data directory or else throws errors. Created Parsed_Data directory if not created.
             Calls the parse_file() function on each raw CSV and alerts the user of parsing progress.
     @input: N/A
     @return: N/A
     '''
-    # Stop attempting to parse if DBC folder is not there.
-    if not os.path.exists("dbc-files"):
-        print("FATAL ERROR: 'dbc-files' folder does not exist.")
-        input("press enter to exit")
-        sys.exit(0)
-    dbc_file = get_dbc_files('dbc-files')
     newpath = input_path
     print("Selected path is: " + str(newpath))
     os.chdir(newpath)
@@ -254,19 +245,22 @@ def parse_folder(input_path):
 
     # Creates Parsed_Data folder if not there.
     if not os.path.exists("temp-parsed-data"):
+        print("created 'temp-parsed-data' folder")
         os.makedirs("temp-parsed-data")
         # Creates Parsed_Data folder if not there.
     if not os.path.exists("parsed-data"):
+        print("created 'parsed-data' folder")
         os.makedirs("parsed-data")
     # Generate the main DBC file object for parsing
-
+    dbc_file=dbc_file
     # Loops through files and call parse_file on each raw CSV.
     for file in os.listdir(newpath):
         filename = os.fsdecode(file)
         if filename.endswith(".CSV") or filename.endswith(".csv"):
             parse_file(filename,dbc_file)
-            print("Successfully parsed: " + filename)
+            print("\tSuccessfully parsed: " + filename)
         else:
+            print("\t\tSkipped " + filename + " because it does not end in .csv")
             continue
 
     return 
@@ -472,9 +466,5 @@ def create_mat():
         print('Saved struct in output.mat file.')
     except:
         print('FATAL ERROR: Failed to create .mat file')
-    try:
-        shutil.rmtree("temp-parsed-data")
-    except:
-        pass
 
 
