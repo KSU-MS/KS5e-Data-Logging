@@ -271,3 +271,9 @@ telemetry_parsers/__pycache__/parser_api.cpython-310.pyc
 *.mat
 *.fig
 .venv/pyvenv.cfg
+
+#Exceptions:
+# We want to track the test csvs
+!test/*.csv
+!test/*.mat
+!test/raw-data/*.csv

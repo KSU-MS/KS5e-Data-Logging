@@ -42,9 +42,9 @@ def get_dbc_files(path_name='dbc-files') -> cantools.db.Database:
         sys.exit(0)
     mega_dbc=cantools.database.Database()
     for filename in file_path:
+        print(filename)
         with open (filename, 'r') as newdbc:
             mega_dbc.add_dbc(newdbc)
-
     print('Step 1: found ' + str(file_count) + ' files in the dbc-files folder')
     return mega_dbc
 
