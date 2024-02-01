@@ -352,7 +352,7 @@ def read_from_teensy_thread(window, comport):
                         name = table[1][i]
                         data = table[2][i]
                         units = table[3][i]
-                        print(name)
+                        # print(name)
                         if name == "VCU_STATUS":
                             window.write_event_value("-MCU State Change-", [data.replace("_", " ")])
                         elif recursive_lookup(name, DICT):

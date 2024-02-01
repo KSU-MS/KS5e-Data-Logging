@@ -97,6 +97,7 @@ def parse_time(raw_time):
     time = str(datetime.utcfromtimestamp(raw_time).strftime('%Y-%m-%dT%H:%M:%S'))
     time = time + "." + str(ms).zfill(3) + "Z"
     return time
+
 def parse_used_ids(filename,dbc_for_parsing,dbc_ids,unknown_ids):
     header_list = ["Time"]
     infile = open(filename, "r")
@@ -350,34 +351,34 @@ def get_time_elapsed(frames = []):
     df_list = []
     start_time = 0
     set_start_time = True # boolean flag: we only want to set the start time once, during the first (i.e. earliest) CSV
-    try:
-        for df in frames:
-            skip += 1
-            timestamps = [dp.isoparse(x) for x in df['time']]
-            if(len(timestamps) != 0):
-                
-                if set_start_time:
-                    start_time = min(timestamps)
-                    set_start_time = False # don't set start time again this run
+    # try:
+    for df in frames:
+        skip += 1
+        timestamps = [dp.isoparse(x) for x in df['time']]
+        if(len(timestamps) != 0):
+            
+            if set_start_time:
+                start_time = min(timestamps)
+                set_start_time = False # don't set start time again this run
 
-                last_time = -1 # sometimes the Teensy has a slight ms miscue where it jumps back 1 sec on a second change, we must address it here
-                time_delta = []
-                for x in timestamps:
-                    current_time = (x - start_time).total_seconds() * 1000
-                    if current_time < last_time:
-                        current_time += 1000 # add one second on a second switch miscue
-                    time_delta.append(current_time)
-                    last_time = current_time
+            last_time = -1 # sometimes the Teensy has a slight ms miscue where it jumps back 1 sec on a second change, we must address it here
+            time_delta = []
+            for x in timestamps:
+                current_time = (x - start_time).total_seconds() * 1000
+                if current_time < last_time:
+                    current_time += 1000 # add one second on a second switch miscue
+                time_delta.append(current_time)
+                last_time = current_time
 
-                df['time_elapsed'] = pd.Series(time_delta)
-                df_list.append(df)
-            else:
-                if DEBUG: print("Frame " + skip + "was skipped in elapsed time calculation.")
-                continue
-    except:
-        print('FATAL ERROR: Process failed at step 3.')
-        input("press enter to exit")
-        sys.exit(0)
+            df['time_elapsed'] = pd.Series(time_delta)
+            df_list.append(df)
+        else:
+            if DEBUG: print("Frame " + skip + "was skipped in elapsed time calculation.")
+            continue
+    # except:
+    #     print('FATAL ERROR: Process failed at step 3.')
+    #     input("press enter to exit")
+    #     sys.exit(0)
 
     print('Step 3: calculated elapsed time')
     return df_list
