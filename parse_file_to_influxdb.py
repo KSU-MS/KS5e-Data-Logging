@@ -9,32 +9,34 @@ failed_id_list=[]
 import influxdb_client,os,time
 from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
-INFLUXDB_TOKEN="L09DVSnd8wsJaC54NP55aOiWcQNp7_U1vVPa1CO5htyTEBcVTH0zwHkQCITXDEBo2GexBfYY00y23h5vYGvMuA=="
+INFLUXDB_TOKEN="sTRcOn3LruRWypvny2JfqKNvZZzlkbb7D8rN0fCNpE2W7hE0TKTZiABof2pqy7ubLFoGJyUQEDvWPncn1DIetQ=="
 
 # import cantools
 # token = os.environ.get("INFLUXDB_TOKEN")
 token = INFLUXDB_TOKEN
 org = "ksu"
 url = "http://localhost:8086"
-bucket="ksu"
+bucket="ksu_test"
 def df_row_to_msg(id,data,dbc):
     try:
         id_int = int(id,16)
     except:
         pass
-        # print(f"ID Parsing failed. {id_int}")
+        print(f"ID Parsing failed. {id_int}")
     try:
-        data = bytearray.fromhex(str(data))
+        strdata = str(data).zfill(16)
+        bytedata = bytearray.fromhex(strdata)
     except:
         pass
-        # print(f"Data parsing failed. {data}")
+        print(f"Data parsing failed.{id_int} {data}")
     try:
         name = (dbc.get_message_by_frame_id(id_int)).name
-        msg = dbc.decode_message(id_int,data,decode_choices=False)
+        msg = dbc.decode_message(id_int,bytedata,decode_choices=False)
         return name,msg 
     except:
         pass
-        # print(f"message decode failed. id: {id_int} data: {data}")
+        if (id_int==195):
+            print(f"message decode failed. id: {id_int} data: {data}")
         failed_id_list.append(id)
         return None
 
@@ -57,7 +59,7 @@ def get_msg_from_df(df,dbc):
                 
     return msg_list
 
-def msg_list_to_point_list(measurement="ks6e",msg_list=None):
+def msg_list_to_point_list(measurement="ks6e_debug",msg_list=None):
     point_list=[]
     msg_list=msg_list
     measurement=measurement
@@ -96,7 +98,7 @@ print(client)
 write_api = client.write_api(write_options=SYNCHRONOUS)
 
 
-MAX_SEND_LENGTH = 15000
+MAX_SEND_LENGTH = 20000
     
 
 path=select_folder_and_get_path()
