@@ -86,7 +86,7 @@ jobs:
     #     path: |
     #       ./build/*
     #       ./dist/parser_exe
-  release-bin:
+  release-exe:
     needs: [build,test-exe]
     runs-on: windows-latest
     steps:

@@ -1,5 +1,6 @@
 import platform
 import os
+import subprocess
 import tkinter as tk
 from tkinter import filedialog
 import logging
@@ -35,11 +36,13 @@ def open_path(path):
     system = platform.system()
     if system == 'Windows':
         logging.debug("detected that operating system is Windows")
-        os.system(f'start "" "{path}"')
+        subprocess.run(["start", f"{path}"])
     elif system == 'Linux':
         logging.debug("detected that operating system is Linux")
+        subprocess.run(["xdg-open", f"{path}"])
     elif system == 'Darwin':
-        os.system(f"xdg-open {path}")  
+        logging.debug("detected that operating system is MacOS")
+        # os.system(f"xdg-open {path}")  
     else:
         logging.error("Unknown operating system")
     
