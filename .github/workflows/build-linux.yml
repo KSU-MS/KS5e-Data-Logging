@@ -45,6 +45,7 @@ jobs:
       run: |
         ls -R
         cp -r ./test ./dist
+        cp ./dataPlots.m ./dist
 
 
 
@@ -88,5 +89,38 @@ jobs:
           chmod u+x ./parser_exe
           ./parser_exe -h
           ./parser_exe --getdbc --test -v
-          
+
+  release-bin:
+    needs: [build,test-bin]
+    runs-on: ubuntu-latest
+    steps:
+      - name: download artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: parser-exe-linux
+          path: parser-exe-download
+      - name: compress artifact
+        run: |
+          tar -czvf parser-exe-linux.tar.gz ./parser-exe-download
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.run_number }}
+          release_name: ${{ github.ref_name }}_release_linux_${{ github.run_number }}
+          draft: false
+          prerelease: false
+    
+      - name: Upload release asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./parser-exe-linux.tar.gz
+          asset_name: parser_exe_linux.tar.gz
+          asset_content_type: application/zip
         

@@ -15,31 +15,10 @@ jobs:
     - name: checkout code
       uses: actions/checkout@v2
       
-    - name: Get current date and time
-      id: date
-      run: echo "::set-output name=date::$(date +'%Y-%m-%dT%H_%M_%S')"
-    # - name: Release
-    #   uses: softprops/action-gh-release@v1
-    #   with:
-    #     tag_name: ${{ github.ref_name }}-${{ steps.date.outputs.date }} 
-    #     files: ./*
-        
-    # - name: Set up Python
-    #   uses: actions/setup-python@v2
-    #   with:
-    #     python-version: '3.8'  # Replace '3.x' with your Python version
-        
-    # - name: install dependencies
-    #   run: |
-    #     python -m pip install --upgrade pip
-    #     pip install -r requirements.txt
-        
-    # - name: run pyinstaller
-    #   run: |
-    #     pyinstaller --onefile ./parser_exe.py
-    # - name: check what files we cooked up
-    #   run: |
-    #     ls -R
+    # - name: Get current date and time
+    #   id: date
+    #   run: echo "::set-output name=date::$(date +'%Y-%m-%dT%H_%M_%S')"
+
     - name: install dependencies
       run: |
         python -m pip install --upgrade pip
@@ -55,6 +34,7 @@ jobs:
         ls -r
         mkdir .\dist\test
         xcopy ".\test" ".\dist\test" /E
+        copy ".\dataPlots.m" ".\dist"
 
     - name: release-downloader
       uses: robinraju/release-downloader@v1.8
@@ -73,13 +53,14 @@ jobs:
         path: |
           ./dist/*
           ./build/*
+          ./*.m
 
-    - name: release all files
-      uses: softprops/action-gh-release@v1
-      with:
-        tag_name: ${{ github.ref_name }}-${{ steps.date.outputs.date }} 
-        files: |
-          ./*
+    # - name: release all files
+    #   uses: softprops/action-gh-release@v1
+    #   with:
+    #     tag_name: ${{ github.ref_name }}-${{ steps.date.outputs.date }} 
+    #     files: |
+    #       ./*
           
   test-exe:
     needs: build
@@ -105,3 +86,37 @@ jobs:
     #     path: |
     #       ./build/*
     #       ./dist/parser_exe
+  release-bin:
+    needs: [build,test-exe]
+    runs-on: windows-latest
+    steps:
+      - name: download artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: parser-exe-windows
+          path: parser-exe-download
+      - name: compress artifact
+        run: |
+          tar -czvf parser-exe-windows.zip ./parser-exe-download
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.run_number }}
+          release_name: ${{ github.ref_name }}_release_windows_${{ github.run_number }}
+          draft: false
+          prerelease: false
+    
+      - name: Upload release asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./parser-exe-windows.zip
+          asset_name: parser_exe_windows.zip
+          asset_content_type: application/zip
+        
