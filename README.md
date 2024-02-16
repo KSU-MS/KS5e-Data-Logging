@@ -1,7 +1,7 @@
 
 ## Intro
 
-Welcome to the folder containing all the BENNESAW BATE Racing data acquisition services. The entire system is Python and MatLab based.
+Welcome to the folder containing all the KENNESAW STATE FSAE data acquisition services. The entire system is Python and MatLab based.
 
 - If you have any questions or need troubleshooting, feel free to reach out to Matthew Samson on Teams, Discord: mathbrook or via email: <msamson1@students.kennesaw.edu>
 
