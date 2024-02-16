@@ -34,7 +34,7 @@ def setup_logger(verbose:bool):
     # Add the handlers to the logger
     logger.addHandler(console_handler)
     logger.addHandler(file_handler)
-    logger.info("logger initialized!")
+    logger.debug("logger initialized!")
 
 # Set up the logger when this module is imported
 # setup_logger()

@@ -1,4 +1,4 @@
-name: build and run linux executable
+name: build and run executables
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: "main"
 
 jobs:
-  build:
+  build-linux:
 
     runs-on: ubuntu-latest
 
@@ -73,8 +73,53 @@ jobs:
         files: |
           ./*
 
+  build-windows:
+
+    runs-on: windows-latest
+
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v2
+
+      - name: install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip freeze
+  
+      - name: run pyinstaller
+        run: |
+          pyinstaller --onefile ./parser_exe.py
+  
+      - name: copy test into dist folder
+        run: |
+          ls -r
+          mkdir .\dist\test
+          xcopy ".\test" ".\dist\test" /E
+          copy ".\dataPlots.m" ".\dist"
+  
+      - name: release-downloader
+        uses: robinraju/release-downloader@v1.8
+        with:
+          repository:
+              KSU-MS/ksu-ms-dbc
+          latest: true
+          fileName: "*.dbc"
+          out-file-path: |
+              ./dist/dbc-files/
+  
+      - name: upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: parser-exe-windows
+          path: |
+              ./dist/*
+              ./build/*
+              ./*.m
+      
+        
   test-bin:
-    needs: build
+    needs: build-linux
     runs-on: ubuntu-latest
     steps:
       - name: download artifact
@@ -90,19 +135,26 @@ jobs:
           ./parser_exe -h
           ./parser_exe --getdbc --test -v
 
-  release-bin:
-    needs: [build,test-bin]
-    runs-on: ubuntu-latest
+  test-exe:
+    needs: build-windows
+    runs-on: windows-latest
     steps:
       - name: download artifact
         uses: actions/download-artifact@v2
         with:
-          name: parser-exe-linux
+          name: parser-exe-windows
           path: parser-exe-download
-      - name: compress artifact
+      - name: run executable # watch the - and _ here lol
         run: |
-          tar -czvf parser-exe-linux.tar.gz ./parser-exe-download
-
+          ls -r
+          cd parser-exe-download
+          cd dist
+          .\parser_exe.exe -h
+          .\parser_exe.exe --getdbc --test -v
+  create-exe-release:
+    needs: [test-bin,test-exe]
+    runs-on: ubuntu-latest
+    steps:
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -110,17 +162,56 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ github.run_number }}
-          release_name: ${{ github.ref_name }}_release_linux_${{ github.run_number }}
+          release_name: ${{ github.ref_name }}_release_${{ github.run_number }}
           draft: false
           prerelease: false
-    
+        
+  release-bin:
+    needs: [build-linux,test-bin,create-exe-release]
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: download artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: parser-exe-linux
+          path: parser-exe-download
+
+      - name: compress artifact
+        run: |
+          tar -czvf parser-exe-linux.tar.gz ./parser-exe-download
+
       - name: Upload release asset
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          upload_url: ${{ needs.create-exe-release.outputs.upload_url }}
           asset_path: ./parser-exe-linux.tar.gz
           asset_name: parser_exe_linux.tar.gz
           asset_content_type: application/zip
-        
+
+  release-exe:
+    needs: [build-windows,test-exe,create-exe-release]
+    runs-on: windows-latest
+    steps:
+      - name: download artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: parser-exe-windows
+          path: parser-exe-download
+
+      - name: compress artifact
+        run: |
+          tar -czvf parser-exe-windows.zip ./parser-exe-download
+
+      - name: Upload release asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-exe-release.outputs.upload_url }}
+          asset_path: ./parser-exe-windows.zip
+          asset_name: parser_exe_windows.zip
+          asset_content_type: application/zip
+          
