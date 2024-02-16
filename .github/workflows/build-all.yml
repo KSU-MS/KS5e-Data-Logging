@@ -1,4 +1,4 @@
-name: build and run linux executable
+name: build and run executables
 
 on:
   push:
@@ -192,7 +192,7 @@ jobs:
           asset_content_type: application/zip
 
   release-exe:
-    needs: [build-windows,test-exe]
+    needs: [build-windows,test-exe,create-exe-release]
     runs-on: windows-latest
     steps:
       - name: download artifact
@@ -200,7 +200,7 @@ jobs:
         with:
           name: parser-exe-windows
           path: parser-exe-download
-          
+
       - name: compress artifact
         run: |
           tar -czvf parser-exe-windows.zip ./parser-exe-download
