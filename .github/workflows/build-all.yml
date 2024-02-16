@@ -152,6 +152,8 @@ jobs:
           .\parser_exe.exe -h
           .\parser_exe.exe --getdbc --test -v
   create-exe-release:
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
     needs: [test-bin,test-exe]
     runs-on: ubuntu-latest
     steps:
