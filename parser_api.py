@@ -30,10 +30,11 @@ import csv
 import tempfile
 import shutil
 import time
-import parser_logger
+import parser_utils.parser_logger as parser_logger
 import logging
 
 DEBUG = False  # Set True for optional error print statements
+PARSER_EXIT_TIMEOUT = 10
 
 
 def get_dbc_files(path_name='dbc-files') -> cantools.db.Database:
@@ -66,6 +67,7 @@ def get_dbc_files(path_name='dbc-files') -> cantools.db.Database:
     if (len(mega_dbc.messages) > 0):
         logging.info(
             f"dbc successfully created with {len(mega_dbc.messages)} messages")
+        logging.info(f"DBC VERSION: {mega_dbc.version}")
         return mega_dbc
     else:
         logging.warning(f"error: dbc was empty! it has no messages :(")
@@ -355,6 +357,16 @@ def parse_folder(input_path, dbc_file: cantools.db.Database):
     # Generate the main DBC file object for parsing
     dbc_file = dbc_file
     dbc_ids = parse_ids_in_database(dbc_file)
+    num_of_csvs_in_folder = 0
+    for file in os.listdir(newpath):
+        filename = os.fsdecode(file)
+        if filename.endswith(".CSV") or filename.endswith(".csv"):
+            logging.debug(f"found csv: {filename}")
+            num_of_csvs_in_folder+=1
+    logging.info(f"found {num_of_csvs_in_folder} CSVs in {newpath}")
+    if num_of_csvs_in_folder == 0:
+        logging.warning("there are ZERO CSV files in this folder. did you select the right one?")
+        
     # Loops through files and call parse_file on each raw CSV.
     for file in os.listdir(newpath):
         filename = os.fsdecode(file)
@@ -367,7 +379,7 @@ def parse_folder(input_path, dbc_file: cantools.db.Database):
                 logging.info(
                     f"Successfully parsed: {filename} with {length} lines in {end_time-start_time} seconds")
             except (ValueError,PermissionError) as e:
-                logging.error(f"attemp to parse {filename} raised error {e}")
+                logging.error(f"attempt to parse {filename} raised error {e}")
         else:
             logging.debug("Skipped " + filename +
                             " because it does not end in .csv")
@@ -413,9 +425,7 @@ def read_files(folder):
                     file_count += 1
     except:
         logging.error('error: Process failed at step 1.')
-        logging.warning('exiting in 3 seconds...')
-        time.sleep(3)
-        sys.exit(0)
+        return None
 
     logging.info('Step 1: found ' + str(file_count) +
                  ' files in the ' + path_name + ' folder')
@@ -432,7 +442,11 @@ def create_dataframe(files=[]):
     try:
         df_list = []
         for f in files:
-            df = pd.read_csv(f)
+            try:
+                df = pd.read_csv(f)
+            except pd.errors.EmptyDataError as e:
+                logging.error(f"failed to read csv ({f}) into dataframe: {e}")
+                continue
             df_list.append(df)
     except:
         logging.error('error: Process failed at step 2.')
@@ -481,9 +495,7 @@ def get_time_elapsed(frames=[]):
                 continue
     except:
         logging.error('error: Process failed at step 3.')
-        logging.error('exiting in 3 seconds...')
-        time.sleep(3)
-        sys.exit(0)
+        return None
 
     logging.info('Step 3: calculated elapsed time')
     return df_list
@@ -542,9 +554,7 @@ def create_struct(frames=[]):
 
     except:
         logging.error('error: Process failed at step 4.')
-        logging.warning('exiting in 3 seconds...')
-        time.sleep(3)
-        sys.exit(0)
+        return None
 
     logging.info('Step 4: created struct')
     return struct
