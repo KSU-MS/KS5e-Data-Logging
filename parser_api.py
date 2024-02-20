@@ -27,6 +27,7 @@ import cantools
 from cantools.database import Message, Database
 import pandas as pd
 import csv
+import json
 import tempfile
 import shutil
 import time
@@ -212,6 +213,42 @@ def delete_lines_containing_string(input_file, specified_string):
     shutil.move(temp_file.name, input_file)
 
 
+def get_parsed_log_info(log_input_path):
+    # TODO this function should verify that the file is a correctly formatted one (Time,signal1,signal2..)
+    PARAMS = [
+        "VCU_STATEMACHINE_STATE",
+        "Pack_SOC",
+        "D1_Commanded_Torque",
+        "D2_Motor_Speed",
+        "Pack_Current",
+        "High_Temperature",
+        "D1_DC_Bus_Voltage"
+    ]
+    log_stats_dict = {}
+    try:
+        df = pd.read_csv(log_input_path)
+    except:
+        logging.error(f"failed to load csv: {log_input_path}")
+        return None
+    
+    log_time_start = df["Time"].min()
+    log_time_end = df["Time"].max()
+    log_time_duration = log_time_end-log_time_start
+    log_time_duration_seconds = log_time_duration/1000
+    log_minutes, log_seconds_remainder = divmod(log_time_duration_seconds, 60)
+    log_time_elapsed = f"{int(log_minutes):03}:{log_seconds_remainder:06.3f}"
+    log_stats_dict["duration"]=log_time_elapsed
+    for field in PARAMS:
+        try:
+            log_stats_dict[field] = {
+                'max': df[field].max(),
+                'min': df[field].min(),
+                'average': df[field].mean()
+            }
+        except KeyError as e:
+            logging.error(f"{e} key {field} not found in {log_input_path}")
+    return log_stats_dict
+
 def parse_file(filename, dbc: Database, dbc_ids: list):
     '''
     @brief: Reads raw data file and creates parsed data CSV.
@@ -331,7 +368,7 @@ def parse_file(filename, dbc: Database, dbc_ids: list):
     infile.close()
     outfile.close()
     outfile2.close()
-    return {"length": len(infile_readlines), "unknown_ids": unknown_ids}
+    return {"length": len(infile_readlines), "unknown_ids": unknown_ids,"input_file":infile.name,"outfile":outfile.name,"outfile2":outfile2.name}
 
 
 def parse_folder(input_path, dbc_file: cantools.db.Database):
@@ -363,29 +400,44 @@ def parse_folder(input_path, dbc_file: cantools.db.Database):
         if filename.endswith(".CSV") or filename.endswith(".csv"):
             logging.debug(f"found csv: {filename}")
             num_of_csvs_in_folder+=1
+            
     logging.info(f"found {num_of_csvs_in_folder} CSVs in {newpath}")
+    
     if num_of_csvs_in_folder == 0:
         logging.warning("there are ZERO CSV files in this folder. did you select the right one?")
         
+    parsed_folder_stats = {
+        "dbc_version":dbc_file.version
+    }
     # Loops through files and call parse_file on each raw CSV.
     for file in os.listdir(newpath):
         filename = os.fsdecode(file)
         if filename.endswith(".CSV") or filename.endswith(".csv"):
             start_time = time.time()
+            
             try:
                 parsed_file_stats = parse_file(filename, dbc_file, dbc_ids)
                 length = parsed_file_stats["length"]
                 end_time = time.time()
                 logging.info(
                     f"Successfully parsed: {filename} with {length} lines in {end_time-start_time} seconds")
+                
+                parsed_log_info = get_parsed_log_info(parsed_file_stats["outfile2"])
+                parsed_folder_stats[filename]={
+                    "parsing time":end_time-start_time,
+                    "summary":parsed_log_info,
+                    "debug_info":parsed_file_stats
+                }
+                logging.debug(json.dumps(parsed_log_info,indent=1))
+                
             except (ValueError,PermissionError) as e:
                 logging.error(f"attempt to parse {filename} raised error {e}")
+                
         else:
-            logging.debug("Skipped " + filename +
-                            " because it does not end in .csv")
+            logging.debug("Skipped " + filename +" because it does not end in .csv")
             continue
 
-    return
+    return parsed_folder_stats
 
 ########################################################################
 ########################################################################
@@ -489,8 +541,7 @@ def get_time_elapsed(frames=[]):
                 df['time_elapsed'] = pd.Series(time_delta)
                 df_list.append(df)
             else:
-                if DEBUG:
-                    logging.warning("Frame " + skip +
+                logging.debug("Frame " + skip +
                                     "was skipped in elapsed time calculation.")
                 continue
     except:

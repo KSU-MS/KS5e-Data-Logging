@@ -36,7 +36,9 @@ def open_path(path):
     system = platform.system()
     if system == 'Windows':
         logging.debug("detected that operating system is Windows")
-        subprocess.run(["start", f"{path}"])
+        path = '"'+path+'"'
+        os.startfile(path)
+        # subprocess.run(["cmd.exe","start", path])
     elif system == 'Linux':
         logging.debug("detected that operating system is Linux")
         subprocess.run(["xdg-open", f"{path}"])
