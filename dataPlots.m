@@ -3,19 +3,6 @@ close all
 % Usage:
 % 1. Load the data struct into the Workspace (output.mat)
 % 2. Run individual sections of the script to plot the desired data
-%% Test Plot for Daq Bulkhead Node
-% figure
-% hold on
-% plot(S.roll(:,1)/1000,S.roll(:,2));
-% plot(S.heading(:,1)/1000,S.heading(:,2));
-% plot(S.pitch(:,1)/1000,S.pitch(:,2)+180);
-% 
-% legend({'roll', ...
-%     'heading','pitch'})
-% xlabel('Time (s)')
-% title('roll n heading test')
-% h = zoom;
-% set(h,'Motion','horizontal','Enable','on');
 %% RPM, IQ, and Inverter Fault Flags
 figure
 iq=S.D4_Iq;
@@ -59,22 +46,24 @@ legend({'iq','id','faults_lo','rpm/10','inverter DC bus voltage', ...
 figure
 
 uptime=S.D3_Power_On_Timer;
-requested_torque = S.requested_torque;
-commanded_torque = S.commanded_torque;
-busVoltage = S.dc_bus_voltage;
-motor_speed = S.motor_speed;
-pedal_data = S.accelerator_pedal_1(:, 2);
-pedal_time = S.accelerator_pedal_1(:, 1);
+requested_torque = S.Torque_Command;
+commanded_torque = S.D1_Commanded_Torque;
+busVoltage = S.D1_DC_Bus_Voltage;
+busCurrent = S.D4_DC_Bus_Current;
+motor_speed = S.D2_Motor_Speed;
+pedal_data = S.APPS1(:, 2);
+pedal_time = S.APPS1(:, 1);
+discharge_current_limit=S.Pack_DCL;
 
 hold on
 plot(motor_speed(:,1)/1000,motor_speed(:,2)/100);
-plot(S.dc_bus_current(:,1)/1000, S.dc_bus_current(:,2)./4);
+plot(busCurrent(:,1)/1000, busCurrent(:,2)./4);
 plot(commanded_torque(:,1)/1000,commanded_torque(:,2)./10);
 plot(requested_torque(:,1)/1000,requested_torque(:,2)./10);
 plot(uptime(:,1)/1000,uptime(:,2)/10);
 plot(busVoltage(:,1)/1000,busVoltage(:,2)./10);
 plot(pedal_time/1000, (pedal_data./10)-93, '.-');
-plot(S.DCL(:,1)/1000,S.DCL(:,2));
+plot(discharge_current_limit(:,1)/1000,discharge_current_limit(:,2));
 
 legend({'Motor Speed (RPM)*0.01', ...
     'Current (A)*0.25',...
@@ -95,13 +84,13 @@ set(h,'Motion','horizontal','Enable','on');
 %% Torque, Vehicle Speed, Current
 figure
 
-requested_torque = S.requested_torque;
-commanded_torque = S.commanded_torque;
-feedback_torque = S.torque_feedback;
-max_torque=S.max_torque;
-busCurrent = S.dc_bus_current;
-busVoltage = S.dc_bus_voltage;
-motor_speed = S.motor_speed;
+requested_torque = S.Torque_Command;
+commanded_torque = S.D1_Commanded_Torque;
+feedback_torque = S.D2_Torque_Feedback;
+max_torque=S.VCU_MAX_TORQUE;
+busCurrent = S.D4_DC_Bus_Current;
+busVoltage = S.D1_DC_Bus_Voltage;
+motor_speed = S.D2_Motor_Speed;
 vehicle_speed_mph = motor_speed;
 vehicle_speed_mph(:,2) = motor_speed(:,2).*(10/29).*18.*pi.*60./63360; %%correct mph equation
 
@@ -112,7 +101,7 @@ plot(busCurrent(:,1)/1000,busCurrent(:,2)./4);
 plot(commanded_torque(:,1)/1000,commanded_torque(:,2)./10);
 plot(vehicle_speed_mph(:,1)/1000,vehicle_speed_mph(:,2));
 plot(requested_torque(:,1)/1000,requested_torque(:,2)./10);
-plot(S.dc_bus_voltage(:,1)/1000,S.dc_bus_voltage(:,2)/4);
+plot(S.D1_DC_Bus_Voltage(:,1)/1000,S.D1_DC_Bus_Voltage(:,2)/4);
 legend({'Motor Speed (RPM)*0.01', ...
        'Max Torque (Nm) *.2', ...
        'Current (A)*0.25', ...
@@ -146,11 +135,11 @@ set(h,'Motion','horizontal','Enable','on');
 %% Pedal Input Traces
 figure
 
-front_brakes_data = S.brake_transducer_1(:, 2);
-front_brakes_time = S.brake_transducer_1(:, 1);
+front_brakes_data = S.BSE1(:, 2);
+front_brakes_time = S.BSE1(:, 1);
 
-pedal_data = S.accelerator_pedal_1(:, 2);
-pedal_time = S.accelerator_pedal_1(:, 1);
+pedal_data = S.APPS1(:, 2);
+pedal_time = S.APPS1(:, 1);
 % 
 % % Normalizing and cleaning pedal traces
 % front_brakes_data = front_brakes_data - mode(front_brakes_data);
@@ -174,8 +163,8 @@ h = zoom;
 set(h,'Motion','horizontal','Enable','on');
 %% DC Bus Current, DC Bus Voltage, and Calculated DC Power Output
 figure
-voltage = S.dc_bus_voltage; 
-current = S.dc_bus_current;
+voltage = S.D1_DC_Bus_Voltage; 
+current = S.D4_DC_Bus_Current;
 
 % Data uniqueness
 for i = 1:length(voltage(:,1)/1000)
@@ -189,12 +178,12 @@ time = 1:0.1:max(current(:,1)/1000); %Seconds
 current_adj = interp1(current(:,1)/1000,current(:,2),time);
 voltage_adj = interp1(voltage(:,1)/1000,voltage(:,2),time);
 power = current_adj.*voltage_adj/100;
-pedal_data = S.accelerator_pedal_1(:, 2);
-pedal_time = S.accelerator_pedal_1(:, 1);
+pedal_data = S.APPS1(:, 2);
+pedal_time = S.APPS1(:, 1);
 
 hold on
-plot(S.dc_bus_current(:,1)/1000, S.dc_bus_current(:,2), '.-');
-plot(S.dc_bus_voltage(:,1)/1000, S.dc_bus_voltage(:,2), '.-'); 
+plot(S.D4_DC_Bus_Current(:,1)/1000, S.D4_DC_Bus_Current(:,2), '.-');
+plot(S.D1_DC_Bus_Voltage(:,1)/1000, S.D1_DC_Bus_Voltage(:,2), '.-'); 
 % plot(S.iq_command(:,1)/1000,S.iq_command(:,2),'-');
 % plot(S.id_command(:,1)/1000,S.id_command(:,2),'-');
 %%plot(S.phase_b_current(:,1)/1000,abs(S.phase_b_current(:,2)));
@@ -203,12 +192,12 @@ plot(S.dc_bus_voltage(:,1)/1000, S.dc_bus_voltage(:,2), '.-');
 %%plot(S.Vq_voltage(:,1)/1000,S.Vq_voltage(:,2),'y');
 
 plot(time, power, '.-');
-plot(S.commanded_torque(:,1)/1000,S.commanded_torque(:,2)*10);
+plot(S.D1_Commanded_Torque(:,1)/1000,S.D1_Commanded_Torque(:,2)*10);
 % plot(S.Iq_Feedback(:,1)/1000,S.Iq_Feedback(:,2));
 %%plot(S.State(:,1)/1000,S.State(:,2)*50);
 %%plot(pedal_time, (pedal_data./10)-93, '.-');
 yyaxis right
-plot(S.motor_speed(:,1)/1000,S.motor_speed(:,2));
+plot(S.D2_Motor_Speed(:,1)/1000,S.D2_Motor_Speed(:,2));
 grid on
 %%ylim([-10 410]);
 
@@ -252,21 +241,21 @@ set(h,'Motion','horizontal','Enable','on');
 figure
 
 hold on
-plot(S.dc_bus_current(:,1)/1000,S.dc_bus_current(:,2))
-plot(S.PackCurrent(:,1)/1000,S.PackCurrent(:,2)/10)
-plot(S.dc_bus_voltage(:,1)/1000,S.dc_bus_voltage(:,2))
-plot(S.PackInstVolt(:,1)/1000,S.PackInstVolt(:,2))
-plot(S.PackOpenVolt(:,1)/1000,S.PackOpenVolt(:,2))
-plot(S.PackSummedVolt(:,1)/1000,S.PackSummedVolt(:,2))
+plot(S.D4_DC_Bus_Current(:,1)/1000,S.D4_DC_Bus_Current(:,2))
+plot(S.Pack_Current(:,1)/1000,S.Pack_Current(:,2))
+plot(S.D1_DC_Bus_Voltage(:,1)/1000,S.D1_DC_Bus_Voltage(:,2))
+plot(S.Pack_Inst_Voltage(:,1)/1000,S.Pack_Inst_Voltage(:,2))
+plot(S.Pack_Open_Voltage(:,1)/1000,S.Pack_Open_Voltage(:,2))
+plot(S.Pack_Summed_Voltage(:,1)/1000,S.Pack_Summed_Voltage(:,2))
 ylabel('yes')
 xlabel('Time (s)')
 title('BMS Acc Voltage Readings vs Inverter Readings and Current')
-legend('DC Bus Current','Dc Bus Voltage','Instant Voltage','Open Voltage','Summed Voltage')
+legend('Inverter DC Bus Current','Orion BMS Pack Current','Inverter DC Bus Voltage','Instant Voltage','Open Voltage','Summed Voltage')
 
 %% Accumulator Capacity Analysis
-current = S.dc_bus_current; %Amps
-motorSpeed = S.motor_speed; %RPM
-voltage = S.dc_bus_voltage; %Volts
+current = S.D4_DC_Bus_Current; %Amps
+motorSpeed = S.D2_Motor_Speed; %RPM
+voltage = S.D1_DC_Bus_Voltage; %Volts
 motorSpeed(:,2) = motorSpeed(:,2)./60; %Rotations per second
 consumption = cumtrapz(current(:,1),current(:,2));
 consumption = [current(:,1),consumption./3600];
@@ -332,45 +321,47 @@ title('Accumulator Voltage Drop Analysis')
 
 %% IMU Accelerometer
 figure
-
-lat_accel = S.lat_accel;
-long_accel = S.long_accel;
-vert_accel = S.vert_accel;
-hold on
-
-plot(lat_accel(:,1)/1000,lat_accel(:,2));
-plot(long_accel(:,1)/1000,long_accel(:,2));
-plot(vert_accel(:,1)/1000,vert_accel(:,2));
-xlabel('Time (s)');
-ylabel('m/s^2');
-legend({'Lateral Acceleration','Longitudinal Acceleration','Vertical Acceleration'})
-title('IMU Accelerometer')
-
-figure
-
-yaw = S.yaw;
-pitch = S.pitch;
-roll = S.roll;
-hold on
-
-plot(yaw(:,1)/1000,yaw(:,2));
-plot(pitch(:,1)/1000,pitch(:,2));
-plot(roll(:,1)/1000,roll(:,2));
-xlabel('Time (s)')
-ylabel('deg/s')
-legend({'Yaw','Pitch', 'Roll'})
-title('IMU Gyroscope')
-
+try
+    lat_accel = S.lat_accel;
+    long_accel = S.long_accel;
+    vert_accel = S.vert_accel;
+    hold on
+    
+    plot(lat_accel(:,1)/1000,lat_accel(:,2));
+    plot(long_accel(:,1)/1000,long_accel(:,2));
+    plot(vert_accel(:,1)/1000,vert_accel(:,2));
+    xlabel('Time (s)');
+    ylabel('m/s^2');
+    legend({'Lateral Acceleration','Longitudinal Acceleration','Vertical Acceleration'})
+    title('IMU Accelerometer')
+    
+    figure
+    
+    yaw = S.yaw;
+    pitch = S.pitch;
+    roll = S.roll;
+    hold on
+    
+    plot(yaw(:,1)/1000,yaw(:,2));
+    plot(pitch(:,1)/1000,pitch(:,2));
+    plot(roll(:,1)/1000,roll(:,2));
+    xlabel('Time (s)')
+    ylabel('deg/s')
+    legend({'Yaw','Pitch', 'Roll'})
+    title('IMU Gyroscope')
+catch ME
+    print("lol")
+end
 %% SAB
 tiledlayout(2,1)
-rpm_fl = S.rpm_front_left;
-rpm_fr = S.rpm_front_right;
+rpm_fl = S.RPM_FL;
+rpm_fr = S.RPM_FR;
 ax1 = nexttile;
 hold on
 
 plot(rpm_fl(:,1)/1000,rpm_fl(:,2));
 plot(rpm_fr(:,1)/1000,rpm_fr(:,2));
-plot(S.motor_speed(:,1)/1000,S.motor_speed(:,2));
+plot(S.D2_Motor_Speed(:,1)/1000,S.D2_Motor_Speed(:,2));
 
 legend({'RPM Front left','RPM front right','Motor RPM'});
 xlabel('Time (s)')
@@ -389,79 +380,71 @@ ylim([-10 100]);
 
 set(gca,'XMinorTick','on')
 linkaxes([ax1 ax2],'x')
-%% lolz
-figure
-hold on
-plot(time,adjMotorSpeed/2.9);
-plot(time,adjrpm_fl);
-%%plot(time,(adjMotorSpeed/2.9)/adjrpm_fl);
-ylim([-10 4000]);
-
 
 %% Feedback Torque vs Requested & Commanded
 tiledlayout(2,1)
 
 ax1 = nexttile;
 hold on
-plot(S.torque_feedback(:,1)/1000,S.torque_feedback(:,2));
-plot(S.commanded_torque(:,1)/1000,S.commanded_torque(:,2));
+plot(S.D2_Torque_Feedback(:,1)/1000,S.D2_Torque_Feedback(:,2));
+plot(S.D1_Commanded_Torque(:,1)/1000,S.D1_Commanded_Torque(:,2));
 legend({'Torque Feedback','Torque Command','-x'});
 xlabel('Time (s)')
 title('Torque and Q-axis current')
 
 ax2 = nexttile;
 hold on
-plot(S.iq_command(:,1)/1000,S.iq_command(:,2));
-plot(S.Iq_Feedback(:,1)/1000,S.Iq_Feedback(:,2));
-plot(S.id_command(:,1)/1000,S.id_command(:,2));
-plot(S.Id_Feedback(:,1)/1000,S.Id_Feedback(:,2));
+plot(S.D4_Iq_Command(:,1)/1000,S.D4_Iq_Command(:,2));
+plot(S.D4_Iq(:,1)/1000,S.D4_Iq(:,2));
+plot(S.D3_Id_Command(:,1)/1000,S.D3_Id_Command(:,2));
+plot(S.D3_Id(:,1)/1000,S.D3_Id(:,2));
 legend({'Iq Command','Iq Feedback','Id cmd','Id feedback','-x'});
 
 
 set(gca,'XMinorTick','on')
 linkaxes([ax1 ax2],'x')
 
-%% RPM vs Feedb
+% %% RPM vs Feedb
+% % 
+% % 
+% % ack
+% figure
+% hold on
+% plot(S.D2_Motor_Speed(:,1),S.D2_Motor_Speed(:,2));
+% plot(S.Id_Feedback(:,1),S.Id_Feedback(:,2));
+% plot(S.Iq_Feedback(:,1),S.Iq_Feedback(:,2));
+% legend({'motor speed','Id Feedback','Iq feedback'});
+% 
+% %% misc
+% m = max(S.Id_Feedback(:,2));
+% %% tuff
+% figure 
+% hold on
+% plot(S.TSVoltage(:,1)/1000,S.TSVoltage(:,2));
+% plot(S.AccVoltage(:,1)/1000,S.AccVoltage(:,2));
+% plot(S.State(:,1)/1000,S.State(:,2));
+% plot(S.D2_Motor_Speed(:,1)/1000,S.D2_Motor_Speed(:,2)/100);
+% legend({'TS Voltage','acc v','state'});
+% %% shonk pots vs speed
+% figure
+% rpm_fl = S.rpm_front_left;
+% rpm_fr = S.rpm_front_right;
+% shonk_multiplier=0.0001875;
+% hold on 
+% 
+% plot(S.Shonk_FL(:,1)/1000,75-S.Shonk_FL(:,2)*shonk_multiplier/5*75,'LineWidth',2);
+% plot(S.Shonk_FR(:,1)/1000,75-S.Shonk_FR(:,2)*shonk_multiplier/5*75,'LineWidth',2);
+% plot(S.Shonk_RL(:,1)/1000,S.Shonk_RL(:,2)*shonk_multiplier/5*100,'LineWidth',2);
+% plot(S.Shonk_RR(:,1)/1000,S.Shonk_RR(:,2)*shonk_multiplier/5*100,'LineWidth',2);
+% yyaxis right
+% vehicle_speed_mph = S.D2_Motor_Speed;
+% vehicle_speed_mph(:,2) = S.D2_Motor_Speed(:,2).*(10/29).*18.*pi.*60./63360; %%correct mph equation
+% plot(vehicle_speed_mph(:,1)/1000,vehicle_speed_mph(:,2),'LineWidth',2);
+% %%scatter(S.D2_Motor_Speed(:,1)/1000,1000);
+% plot(S.D1_Commanded_Torque(:,1)/1000,S.D1_Commanded_Torque(:,2)/4,'.-');
+% plot(rpm_fl(:,1)/1000,rpm_fl(:,2).*18.*pi.*60./63360,'LineWidth',2);
+% plot(rpm_fr(:,1)/1000,rpm_fr(:,2).*18.*pi.*60./63360,'LineWidth',2);
+% ylim([-10 60])
+% legend({'Shonk FL mm','Shonk FR mm','Shonk RR mm','Shonk RL mm','Vehicle MPH','Torque command Nm * 0.25','FL MPH','FR MPH'});
 % 
 % 
-% ack
-figure
-hold on
-plot(S.motor_speed(:,1),S.motor_speed(:,2));
-plot(S.Id_Feedback(:,1),S.Id_Feedback(:,2));
-plot(S.Iq_Feedback(:,1),S.Iq_Feedback(:,2));
-legend({'motor speed','Id Feedback','Iq feedback'});
-
-%% misc
-m = max(S.Id_Feedback(:,2));
-%% tuff
-figure 
-hold on
-plot(S.TSVoltage(:,1)/1000,S.TSVoltage(:,2));
-plot(S.AccVoltage(:,1)/1000,S.AccVoltage(:,2));
-plot(S.State(:,1)/1000,S.State(:,2));
-plot(S.motor_speed(:,1)/1000,S.motor_speed(:,2)/100);
-legend({'TS Voltage','acc v','state'});
-%% shonk pots vs speed
-figure
-rpm_fl = S.rpm_front_left;
-rpm_fr = S.rpm_front_right;
-shonk_multiplier=0.0001875;
-hold on 
-
-plot(S.Shonk_FL(:,1)/1000,75-S.Shonk_FL(:,2)*shonk_multiplier/5*75,'LineWidth',2);
-plot(S.Shonk_FR(:,1)/1000,75-S.Shonk_FR(:,2)*shonk_multiplier/5*75,'LineWidth',2);
-plot(S.Shonk_RL(:,1)/1000,S.Shonk_RL(:,2)*shonk_multiplier/5*100,'LineWidth',2);
-plot(S.Shonk_RR(:,1)/1000,S.Shonk_RR(:,2)*shonk_multiplier/5*100,'LineWidth',2);
-yyaxis right
-vehicle_speed_mph = S.motor_speed;
-vehicle_speed_mph(:,2) = S.motor_speed(:,2).*(10/29).*18.*pi.*60./63360; %%correct mph equation
-plot(vehicle_speed_mph(:,1)/1000,vehicle_speed_mph(:,2),'LineWidth',2);
-%%scatter(S.motor_speed(:,1)/1000,1000);
-plot(S.commanded_torque(:,1)/1000,S.commanded_torque(:,2)/4,'.-');
-plot(rpm_fl(:,1)/1000,rpm_fl(:,2).*18.*pi.*60./63360,'LineWidth',2);
-plot(rpm_fr(:,1)/1000,rpm_fr(:,2).*18.*pi.*60./63360,'LineWidth',2);
-ylim([-10 60])
-legend({'Shonk FL mm','Shonk FR mm','Shonk RR mm','Shonk RL mm','Vehicle MPH','Torque command Nm * 0.25','FL MPH','FR MPH'});
-
-
