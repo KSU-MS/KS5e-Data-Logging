@@ -1,6 +1,10 @@
+import platform
+import os
+import subprocess
 import tkinter as tk
 from tkinter import filedialog
-import parser_logger,logging
+import logging
+import parser_utils.parser_logger as parser_logger
 def select_folder_and_get_path():
     root = tk.Tk()
     root.attributes("-topmost", True)
@@ -27,8 +31,23 @@ def select_folder_and_get_path_dbc():
     else:
         logging.warning("No folder selected")
         return None
-
-
+    
+def open_path(path):
+    system = platform.system()
+    if system == 'Windows':
+        logging.debug("detected that operating system is Windows")
+        path = '"'+path+'"'
+        os.startfile(path)
+        # subprocess.run(["cmd.exe","start", path])
+    elif system == 'Linux':
+        logging.debug("detected that operating system is Linux")
+        subprocess.run(["xdg-open", f"{path}"])
+    elif system == 'Darwin':
+        logging.debug("detected that operating system is MacOS")
+        # os.system(f"xdg-open {path}")  
+    else:
+        logging.error("Unknown operating system")
+    
 # # Call the method to select a folder and get its path
 # selected_folder_path = select_folder_and_get_path()
 
