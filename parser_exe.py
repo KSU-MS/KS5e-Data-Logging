@@ -19,6 +19,8 @@ def main(args):
     logging.info("The process will be of two parts: CSV to CSV parsing, and then CSV to MAT parsing.")
     dbc_found = False
     dbc_files_folder_good = True
+    parser_exe_path = os.getcwd()
+    logging.info(parser_exe_path)
     if args.getdbc:
         logging.info("Downloading latest dbc")
         download_latest_release()
@@ -92,8 +94,7 @@ def main(args):
     logging.info("Beginning CSV to MAT parsing...")
     
     logging.info(PARSER_MAT_START_TEXT)
-    
-    create_mat_success = create_mat('temp-parsed-data')
+    create_mat_success = create_mat('temp-parsed-data',parser_exe_path,parsed_folder_stats["logs"][0]["debug_info"]["start_timestamp"])
     
     if create_mat_success:
         logging.info("Finished CSV to MAT parsing.")

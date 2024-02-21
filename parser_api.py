@@ -33,6 +33,7 @@ import shutil
 import time
 import parser_utils.parser_logger as parser_logger
 import parser_utils.checkdbcversion as checkdbcvers
+from parser_utils.folder_selection_utils import copy_file_with_prefix
 import logging
 
 DEBUG = False  # Set True for optional error print statements
@@ -215,7 +216,7 @@ def delete_lines_containing_string(input_file, specified_string):
     shutil.move(temp_file.name, input_file)
 
 
-def get_parsed_log_info(log_input_path):
+def get_parsed_log_summary(log_input_path):
     # TODO this function should verify that the file is a correctly formatted one (Time,signal1,signal2..)
     PARAMS = [
         "VCU_STATEMACHINE_STATE",
@@ -288,7 +289,7 @@ def parse_file(filename, dbc: Database, dbc_ids: list):
     except PermissionError as e:
         logging.error(f"could not open {'parsed-data/parsed' + filename} to write, {e}")
         raise e
-        
+    start_timestamp = None
     flag_second_line = True
     flag_first_line = True
     last_time = ''
@@ -316,6 +317,8 @@ def parse_file(filename, dbc: Database, dbc_ids: list):
 
             # Call helper functions
             time = parse_time(raw_time)
+            if start_timestamp == None:
+                start_timestamp = time
             # Strip trailing end of line/file characters that may cause bad parsing
             raw_message = raw_message[:(int(length) * 2)]
             # Sometimes messages come truncated if 0s on the left. Append 0s so field-width is 16.
@@ -370,7 +373,7 @@ def parse_file(filename, dbc: Database, dbc_ids: list):
     infile.close()
     outfile.close()
     outfile2.close()
-    return {"length": len(infile_readlines), "unknown_ids": unknown_ids,"input_file":infile.name,"outfile":outfile.name,"outfile2":outfile2.name}
+    return {"start_timestamp":start_timestamp,"length": len(infile_readlines), "unknown_ids": unknown_ids,"input_file":infile.name,"outfile":outfile.name,"outfile2":outfile2.name}
 
 
 def parse_folder(input_path, dbc_file: cantools.db.Database):
@@ -411,6 +414,7 @@ def parse_folder(input_path, dbc_file: cantools.db.Database):
     parsed_folder_stats = {
         "dbc_version":dbc_file.version
     }
+    parsed_log_info_list = []
     # Loops through files and call parse_file on each raw CSV.
     for file in os.listdir(newpath):
         filename = os.fsdecode(file)
@@ -424,13 +428,15 @@ def parse_folder(input_path, dbc_file: cantools.db.Database):
                 logging.info(
                     f"Successfully parsed: {filename} with {length} lines in {end_time-start_time} seconds")
                 
-                parsed_log_info = get_parsed_log_info(parsed_file_stats["outfile2"])
-                parsed_folder_stats[filename]={
+                parsed_log_summary = get_parsed_log_summary(parsed_file_stats["outfile2"])
+                parsed_log_info={
+                    "log_name":filename,
                     "parsing time":end_time-start_time,
-                    "summary":parsed_log_info,
+                    "summary":parsed_log_summary,
                     "debug_info":parsed_file_stats
                 }
-                logging.debug(json.dumps(parsed_log_info,indent=1))
+                parsed_log_info_list.append(parsed_log_info)
+                logging.debug(json.dumps(parsed_log_summary,indent=1))
                 
             except (ValueError,PermissionError) as e:
                 logging.error(f"attempt to parse {filename} raised error {e}")
@@ -438,7 +444,7 @@ def parse_folder(input_path, dbc_file: cantools.db.Database):
         else:
             logging.debug("Skipped " + filename +" because it does not end in .csv")
             continue
-
+    parsed_folder_stats["logs"]=parsed_log_info_list
     return parsed_folder_stats
 
 ########################################################################
@@ -624,7 +630,7 @@ def transpose_all(struct):
     return struct
 
 
-def create_mat(path):
+def create_mat(path,exe_path,first_log_timestamp=""):
     '''
     @brief: Entry point to the parser to create the .mat file
     @input: N/A
@@ -637,9 +643,11 @@ def create_mat(path):
     frames_list1 = get_time_elapsed(frames_list)
     struct1 = create_struct(frames_list1)
     struct2 = transpose_all(struct1)
+    copy_file_with_prefix(os.path.join(exe_path,'./dataPlots.m'),'./parsed-data/','')
 
+    first_log_timestamp=first_log_timestamp.strip().replace(":","_").replace(".","_")
     try:
-        savemat('parsed-data/output.mat',
+        savemat('parsed-data/'+first_log_timestamp+'output.mat',
                 {'S': struct2}, long_field_names=True)
         logging.info('Saved struct in output.mat file.')
         return True

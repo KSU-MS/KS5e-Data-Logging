@@ -4,7 +4,9 @@ import subprocess
 import tkinter as tk
 from tkinter import filedialog
 import logging
+import shutil
 import parser_utils.parser_logger as parser_logger
+
 def select_folder_and_get_path():
     root = tk.Tk()
     root.attributes("-topmost", True)
@@ -48,6 +50,23 @@ def open_path(path):
     else:
         logging.error("Unknown operating system")
     
+def copy_file_with_prefix(src, dest, prefix):
+    # Copy the file
+    logging.info(os.getcwd())
+    shutil.copy(src, dest)
+
+    # Get the filename from the source path
+    filename = os.path.basename(src)
+
+    # Construct the new filename with prefix
+    new_filename = prefix + filename
+
+    # Get the full path of the copied file
+    copied_file_path = os.path.join(dest, filename)
+
+    # Rename the copied file with the new filename
+    os.rename(copied_file_path, os.path.join(dest, new_filename))
+
 # # Call the method to select a folder and get its path
 # selected_folder_path = select_folder_and_get_path()
 
