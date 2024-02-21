@@ -1,7 +1,7 @@
 
 ## Intro
 
-Welcome to the folder containing all the BENNESAW BATE Racing data acquisition services. The entire system is Python and MatLab based.
+Welcome to the folder containing all the KENNESAW STATE FSAE data acquisition services. The entire system is Python and MatLab based.
 
 - If you have any questions or need troubleshooting, feel free to reach out to Matthew Samson on Teams, Discord: mathbrook or via email: <msamson1@students.kennesaw.edu>
 
@@ -90,3 +90,4 @@ _The next steps are optional - only if you want to plot the results_
 1. Either run the file `console_exe.py` with the Python Interpreter or issue the command `py -3 console_exe.py`
 2. Select your source of data input and run it
    - currently the only working data source is "teensy"
+   - 
