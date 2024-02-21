@@ -27,13 +27,16 @@ import cantools
 from cantools.database import Message, Database
 import pandas as pd
 import csv
+import json
 import tempfile
 import shutil
 import time
-import parser_logger
+import parser_utils.parser_logger as parser_logger
+import parser_utils.checkdbcversion as checkdbcvers
 import logging
 
 DEBUG = False  # Set True for optional error print statements
+PARSER_EXIT_TIMEOUT = 10
 
 
 def get_dbc_files(path_name='dbc-files') -> cantools.db.Database:
@@ -66,6 +69,8 @@ def get_dbc_files(path_name='dbc-files') -> cantools.db.Database:
     if (len(mega_dbc.messages) > 0):
         logging.info(
             f"dbc successfully created with {len(mega_dbc.messages)} messages")
+        logging.info(f"DBC VERSION: {mega_dbc.version}")
+        checkdbcvers.check_newer_commit(checkdbcvers.repo_owner+"/"+checkdbcvers.repo_name,(mega_dbc.version.strip()))
         return mega_dbc
     else:
         logging.warning(f"error: dbc was empty! it has no messages :(")
@@ -210,6 +215,42 @@ def delete_lines_containing_string(input_file, specified_string):
     shutil.move(temp_file.name, input_file)
 
 
+def get_parsed_log_info(log_input_path):
+    # TODO this function should verify that the file is a correctly formatted one (Time,signal1,signal2..)
+    PARAMS = [
+        "VCU_STATEMACHINE_STATE",
+        "Pack_SOC",
+        "D1_Commanded_Torque",
+        "D2_Motor_Speed",
+        "Pack_Current",
+        "High_Temperature",
+        "D1_DC_Bus_Voltage"
+    ]
+    log_stats_dict = {}
+    try:
+        df = pd.read_csv(log_input_path)
+    except:
+        logging.error(f"failed to load csv: {log_input_path}")
+        return None
+    
+    log_time_start = df["Time"].min()
+    log_time_end = df["Time"].max()
+    log_time_duration = log_time_end-log_time_start
+    log_time_duration_seconds = log_time_duration/1000
+    log_minutes, log_seconds_remainder = divmod(log_time_duration_seconds, 60)
+    log_time_elapsed = f"{int(log_minutes):03}:{log_seconds_remainder:06.3f}"
+    log_stats_dict["duration"]=log_time_elapsed
+    for field in PARAMS:
+        try:
+            log_stats_dict[field] = {
+                'max': df[field].max(),
+                'min': df[field].min(),
+                'average': df[field].mean()
+            }
+        except KeyError as e:
+            logging.error(f"{e} key {field} not found in {log_input_path}")
+    return log_stats_dict
+
 def parse_file(filename, dbc: Database, dbc_ids: list):
     '''
     @brief: Reads raw data file and creates parsed data CSV.
@@ -329,7 +370,7 @@ def parse_file(filename, dbc: Database, dbc_ids: list):
     infile.close()
     outfile.close()
     outfile2.close()
-    return {"length": len(infile_readlines), "unknown_ids": unknown_ids}
+    return {"length": len(infile_readlines), "unknown_ids": unknown_ids,"input_file":infile.name,"outfile":outfile.name,"outfile2":outfile2.name}
 
 
 def parse_folder(input_path, dbc_file: cantools.db.Database):
@@ -355,25 +396,50 @@ def parse_folder(input_path, dbc_file: cantools.db.Database):
     # Generate the main DBC file object for parsing
     dbc_file = dbc_file
     dbc_ids = parse_ids_in_database(dbc_file)
+    num_of_csvs_in_folder = 0
+    for file in os.listdir(newpath):
+        filename = os.fsdecode(file)
+        if filename.endswith(".CSV") or filename.endswith(".csv"):
+            logging.debug(f"found csv: {filename}")
+            num_of_csvs_in_folder+=1
+            
+    logging.info(f"found {num_of_csvs_in_folder} CSVs in {newpath}")
+    
+    if num_of_csvs_in_folder == 0:
+        logging.warning("there are ZERO CSV files in this folder. did you select the right one?")
+        
+    parsed_folder_stats = {
+        "dbc_version":dbc_file.version
+    }
     # Loops through files and call parse_file on each raw CSV.
     for file in os.listdir(newpath):
         filename = os.fsdecode(file)
         if filename.endswith(".CSV") or filename.endswith(".csv"):
             start_time = time.time()
+            
             try:
                 parsed_file_stats = parse_file(filename, dbc_file, dbc_ids)
                 length = parsed_file_stats["length"]
                 end_time = time.time()
                 logging.info(
                     f"Successfully parsed: {filename} with {length} lines in {end_time-start_time} seconds")
+                
+                parsed_log_info = get_parsed_log_info(parsed_file_stats["outfile2"])
+                parsed_folder_stats[filename]={
+                    "parsing time":end_time-start_time,
+                    "summary":parsed_log_info,
+                    "debug_info":parsed_file_stats
+                }
+                logging.debug(json.dumps(parsed_log_info,indent=1))
+                
             except (ValueError,PermissionError) as e:
-                logging.error(f"attemp to parse {filename} raised error {e}")
+                logging.error(f"attempt to parse {filename} raised error {e}")
+                
         else:
-            logging.debug("Skipped " + filename +
-                            " because it does not end in .csv")
+            logging.debug("Skipped " + filename +" because it does not end in .csv")
             continue
 
-    return
+    return parsed_folder_stats
 
 ########################################################################
 ########################################################################
@@ -413,9 +479,7 @@ def read_files(folder):
                     file_count += 1
     except:
         logging.error('error: Process failed at step 1.')
-        logging.warning('exiting in 3 seconds...')
-        time.sleep(3)
-        sys.exit(0)
+        return None
 
     logging.info('Step 1: found ' + str(file_count) +
                  ' files in the ' + path_name + ' folder')
@@ -432,7 +496,11 @@ def create_dataframe(files=[]):
     try:
         df_list = []
         for f in files:
-            df = pd.read_csv(f)
+            try:
+                df = pd.read_csv(f)
+            except pd.errors.EmptyDataError as e:
+                logging.error(f"failed to read csv ({f}) into dataframe: {e}")
+                continue
             df_list.append(df)
     except:
         logging.error('error: Process failed at step 2.')
@@ -475,15 +543,12 @@ def get_time_elapsed(frames=[]):
                 df['time_elapsed'] = pd.Series(time_delta)
                 df_list.append(df)
             else:
-                if DEBUG:
-                    logging.warning("Frame " + skip +
+                logging.debug("Frame " + skip +
                                     "was skipped in elapsed time calculation.")
                 continue
     except:
         logging.error('error: Process failed at step 3.')
-        logging.error('exiting in 3 seconds...')
-        time.sleep(3)
-        sys.exit(0)
+        return None
 
     logging.info('Step 3: calculated elapsed time')
     return df_list
@@ -542,9 +607,7 @@ def create_struct(frames=[]):
 
     except:
         logging.error('error: Process failed at step 4.')
-        logging.warning('exiting in 3 seconds...')
-        time.sleep(3)
-        sys.exit(0)
+        return None
 
     logging.info('Step 4: created struct')
     return struct
@@ -561,14 +624,15 @@ def transpose_all(struct):
     return struct
 
 
-def create_mat():
+def create_mat(path):
     '''
     @brief: Entry point to the parser to create the .mat file
     @input: N/A
     @return: N/A
     '''
     logging.info("Step 0: starting...")
-    csv_files = read_files('temp-parsed-data')
+    read_file_path = path
+    csv_files = read_files(read_file_path)
     frames_list = create_dataframe(csv_files)
     frames_list1 = get_time_elapsed(frames_list)
     struct1 = create_struct(frames_list1)
