@@ -93,7 +93,7 @@ def main(args):
     
     logging.info(PARSER_MAT_START_TEXT)
     
-    create_mat_success = create_mat()
+    create_mat_success = create_mat('temp-parsed-data')
     
     if create_mat_success:
         logging.info("Finished CSV to MAT parsing.")

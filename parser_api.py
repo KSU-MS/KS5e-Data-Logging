@@ -32,6 +32,7 @@ import tempfile
 import shutil
 import time
 import parser_utils.parser_logger as parser_logger
+import parser_utils.checkdbcversion as checkdbcvers
 import logging
 
 DEBUG = False  # Set True for optional error print statements
@@ -69,6 +70,7 @@ def get_dbc_files(path_name='dbc-files') -> cantools.db.Database:
         logging.info(
             f"dbc successfully created with {len(mega_dbc.messages)} messages")
         logging.info(f"DBC VERSION: {mega_dbc.version}")
+        checkdbcvers.check_newer_commit(checkdbcvers.repo_owner+"/"+checkdbcvers.repo_name,(mega_dbc.version.strip()))
         return mega_dbc
     else:
         logging.warning(f"error: dbc was empty! it has no messages :(")
@@ -622,14 +624,15 @@ def transpose_all(struct):
     return struct
 
 
-def create_mat():
+def create_mat(path):
     '''
     @brief: Entry point to the parser to create the .mat file
     @input: N/A
     @return: N/A
     '''
     logging.info("Step 0: starting...")
-    csv_files = read_files('temp-parsed-data')
+    read_file_path = path
+    csv_files = read_files(read_file_path)
     frames_list = create_dataframe(csv_files)
     frames_list1 = get_time_elapsed(frames_list)
     struct1 = create_struct(frames_list1)
