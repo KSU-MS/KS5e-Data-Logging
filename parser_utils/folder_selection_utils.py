@@ -33,7 +33,20 @@ def select_folder_and_get_path_dbc():
     else:
         logging.warning("No folder selected")
         return None
+  
+def select_file():
+    root = tk.Tk()
+    root.withdraw()  # Hide the main window
+    root.attributes("-topmost", True)
+    file_path = filedialog.askopenfile()
     
+    if file_path:
+        logging.info(f"Selected file path: {file_path}")
+        return file_path
+    else:
+        logging.warning("No file selected")
+        return None
+  
 def open_path(path):
     system = platform.system()
     if system == 'Windows':

@@ -1,8 +1,9 @@
-from parser_utils.folder_selection_utils import select_folder_and_get_path,select_folder_and_get_path_dbc,open_path
+from parser_utils.folder_selection_utils import select_folder_and_get_path,select_folder_and_get_path_dbc,open_path,select_file
 from parser_utils.download_latest_dbc_from_releases import download_latest_release
 from parser_utils.logplotter import cantools_plot_csv
 from parser_api import *
 from parser_utils.big_text_prints import *
+from parser_utils import logplotter
 import sys
 import argparse
 import subprocess
@@ -63,7 +64,8 @@ def main(args):
                 break
             elif dbc_file is None:
                 dbc_files_folder_good = False
-
+    if args.plot:
+        logplotter.cantools_plot_csv(select_file().name,dbc_file,'*')
     logging.info("beginning CSV to CSV parsing")
     logging.info(PARSER_STARTING_TEXT)
     parsing_folder_path=None
