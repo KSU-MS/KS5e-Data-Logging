@@ -40,7 +40,7 @@ jobs:
         
     - name: run pyinstaller
       run: |
-        pyinstaller --onefile ./parser_exe.py
+        pyinstaller --onefile ./parser_exe.py --splash ./readmepics/kennesawmotorsports.jpg
     - name: check what files we cooked up
       run: |
         ls -R
@@ -89,7 +89,7 @@ jobs:
   
       - name: run pyinstaller
         run: |
-          pyinstaller --onefile ./parser_exe.py
+          pyinstaller --onefile ./parser_exe.py --splash .\readmepics\kennesawmotorsports.jpg
   
       - name: copy test into dist folder
         run: |

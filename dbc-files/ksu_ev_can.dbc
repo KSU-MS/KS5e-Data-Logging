@@ -1,4 +1,4 @@
-VERSION "cb3bef2
+VERSION "2f49c8c
 "
 
 
@@ -73,8 +73,8 @@ BO_ 195 VCU_STATUS: 7 vcu
  SG_ VCU_BSPD_BRAKE_HIGH : 14|1@1+ (1,0) [0|1] "" Vector__XXX
  SG_ VCU_BSPD_CURRENT_HIGH : 13|1@1+ (1,0) [0|1] "" Vector__XXX
  SG_ VCU_BRAKE_ACTIVE : 12|1@1+ (1,0) [0|1] "" Vector__XXX
- SG_ VCU_BRAKE_IMPLAUSIBLE : 9|1@1+ (1,0) [0|1] "" Vector__XXX
- SG_ VCU_ACCEL_IMPLAUSIBLE : 8|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ VCU_BRAKE_IMPLAUSIBLE : 11|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ VCU_ACCEL_IMPLAUSIBLE : 10|1@1+ (1,0) [0|1] "" Vector__XXX
  SG_ VCU_SHUTDOWN_E_OK_HIGH : 7|1@1+ (1,0) [0|1] "" Vector__XXX
  SG_ VCU_SOFTWARE_OK_HIGH : 6|1@1+ (1,0) [0|1] "" Vector__XXX
  SG_ VCU_SHUTDOWN_D_OK_HIGH : 5|1@1+ (1,0) [0|1] "" Vector__XXX
@@ -82,7 +82,7 @@ BO_ 195 VCU_STATUS: 7 vcu
  SG_ VCU_SHUTDOWN_C_OK_HIGH : 3|1@1+ (1,0) [0|1] "" Vector__XXX
  SG_ VCU_BMS_OK_HIGH : 2|1@1+ (1,0) [0|1] "" Vector__XXX
  SG_ VCU_SHUTDOWN_B_OK_HIGH : 1|1@1+ (1,0) [0|1] "" Vector__XXX
- SG_ VCU_IMD_OK_HIGH : 0|1@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ VCU_IMD_OK_HIGH : 0|1@1+ (1,0) [0|1] "" Vector__XXX
 
 BO_ 200 vcu_firmware_version: 8 vcu
  SG_ vcu_project_is_dirty : 56|1@1+ (1,0) [0|1] "" Vector__XXX
