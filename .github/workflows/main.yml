@@ -3,7 +3,7 @@ name: generate DBC and C code
 on:
   push:
     branches:
-      - main  # Replace 'main' with your main branch name a
+      - develop  # Replace 'main' with your main branch name a
 
 jobs:
   build:
