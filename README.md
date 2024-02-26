@@ -1,7 +1,7 @@
 
 # Intro
 
-![team logo](readmepics\kennesawmotorsports.jpg)
+![team logo](readmepics/kennesawmotorsports.jpg)
 Welcome to the folder containing all the KENNESAW STATE FSAE data acquisition services. The entire system is Python and MatLab based.
 
 - If you have any questions or need troubleshooting, feel free to reach out to Matthew Samson on Teams, Discord: mathbrook or via email: <msamson1@students.kennesaw.edu>
@@ -37,7 +37,7 @@ there are two options for using the parser:
 1. Click this link to download the latest windows executable: <https://github.com/KSU-MS/KS5e-Data-Logging/releases/latest/download/parser_exe_windows.zip>
 
 2. once that download is complete, extract the contents of the .zip file 
-3. Open the extracted folder and navigate to parser-exe-windows/dist/ ![parser exe download directory](readmepics\parser-exe-directory.png)
+3. Open the extracted folder and navigate to parser-exe-windows/dist/ ![parser exe download directory](readmepics/parser-exe-directory.png)
 4. Click on `parser_exe.exe` to run it
     - Windows may give a warning when trying to run the program, click on 'more info' and then 'run anyway' to bypass it
 
@@ -58,7 +58,7 @@ You should be able to get it installed and licensed with your student email
 ```python
 pip install virtualenv
 python -m virtualenv venv
-.\venv\scripts\activate
+.venv\scripts\activate
 pip install -r requirements.txt
 ```
 
