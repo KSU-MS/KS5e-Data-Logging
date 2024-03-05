@@ -1,4 +1,4 @@
-VERSION "2f49c8c
+VERSION "480b0af
 "
 
 
@@ -56,8 +56,8 @@ BO_ 202 VCU_BOARD_READINGS_TWO: 8 vcu
  SG_ VCU_SDC_VOLTAGE : 0|16@1+ (1,0) [0|65535] "bits" Vector__XXX
 
 BO_ 198 VCU_WHEELSPEED_READINGS: 8 vcu
- SG_ RPM_FR : 32|32@1+ (0.01,0) [0|4294967296] "rpm" Vector__XXX
- SG_ RPM_FL : 0|32@1+ (0.01,0) [0|4294967296] "rpm" Vector__XXX
+ SG_ RPM_FR : 16|16@1- (1,0) [-32768|32767] "rpm" Vector__XXX
+ SG_ RPM_FL : 0|16@1- (1,0) [-32768|32767] "rpm" Vector__XXX
 
 BO_ 195 VCU_STATUS: 7 vcu
  SG_ VCU_DISTANCE_TRAVELLED : 40|16@1+ (1,0) [0|65535] "meters" Vector__XXX
@@ -422,6 +422,10 @@ BO_ 514 BMS_Current_Limit: 8 Vector__XXX
 CM_ "can bus of KSU motorsports vehicles";
 CM_ BU_ vcu "the vehicle control unit";
 CM_ BO_ 196 "VCU analog pedal readings";
+CM_ SG_ 196 STEERING "steering angle sensor voltage";
+CM_ SG_ 196 BSE1 "brake pedal travel sensor voltage";
+CM_ SG_ 196 APPS2 "accelerator pedal sensor 2 voltage reading";
+CM_ SG_ 196 APPS1 "accelerator pedal sensor 1 voltage reading";
 CM_ BO_ 201 "VCU PCB health readings";
 CM_ SG_ 201 VCU_5V_VOLTAGE "VCU pcb voltage sense of the 5v rail";
 CM_ SG_ 201 VCU_BSPD_VOLTAGE "VCU pcb voltage sense of the BSPD signal to close relay";
@@ -435,7 +439,22 @@ CM_ SG_ 202 VCU_SDC_VOLTAGE "VCU pcb voltage sense of the shutdown circuit input
 CM_ BO_ 198 "VCU wheel speed sensor readings";
 CM_ SG_ 198 RPM_FR "front right wheel speed sensor";
 CM_ SG_ 198 RPM_FL "front left wheel speed sensor";
+CM_ BO_ 195 "Vehicle Control Unit Status message";
+CM_ SG_ 195 VCU_DISTANCE_TRAVELLED "distance travelled in current driving session";
+CM_ SG_ 195 VCU_TORQUE_MODE "VCU torque mode setting ";
+CM_ SG_ 195 VCU_MAX_TORQUE "max torque setting in Newton-meters";
+CM_ SG_ 195 VCU_LAUNCH_CONTROL_ACTIVE "1 if launch control is active, 0 if not";
+CM_ SG_ 195 VCU_SOFTWARE_OK "currently unused";
+CM_ SG_ 195 VCU_ACTIVATE_BUZZER "1 if the buzzer is activated, 0 if not";
+CM_ SG_ 195 VCU_ENERGY_METER_PRESENT "1 if the energy meter is present, 0 if not";
+CM_ SG_ 195 VCU_INVERTER_POWERED "1 if the inverter is powered, 0 if not";
 CM_ SG_ 195 VCU_STATEMACHINE_STATE "0 = STARTUP, 1 = TS NOT ACTIVE, 2 = TS ACTIVE, 3 = ENABLING INVERTER, 4 = WAIT RTD SOUND, 5=RTD";
+CM_ SG_ 195 VCU_ACCEL_BRAKE_IMPLAUSIBLE "1 if the accel and brake plausibility is tripped";
+CM_ SG_ 195 VCU_BSPD_BRAKE_HIGH "1 if the brake is above the bspd trip threshold";
+CM_ SG_ 195 VCU_BSPD_CURRENT_HIGH "1 if the acc current is above the bspd trip threshold";
+CM_ SG_ 195 VCU_BRAKE_ACTIVE "1 if the brake is active (above 'vcu_brake_active_threshold')";
+CM_ SG_ 195 VCU_BRAKE_IMPLAUSIBLE "1 if the brake is implausible, 0 if not";
+CM_ SG_ 195 VCU_ACCEL_IMPLAUSIBLE "1 if the accel pedal is implausible, 0 if not";
 CM_ SG_ 195 VCU_SHUTDOWN_E_OK_HIGH "(UNUSED) Shutdown loop voltage at point E, high = good";
 CM_ SG_ 195 VCU_SOFTWARE_OK_HIGH "(UNUSED) VCU heartbeat status, high = good";
 CM_ SG_ 195 VCU_SHUTDOWN_D_OK_HIGH "(UNUSED) Shutdown loop voltage at point D, high = good";
@@ -448,16 +467,25 @@ CM_ BO_ 200 "information on the running vcu firmware and system on-timer";
 CM_ SG_ 200 vcu_project_is_dirty "if the compiled fw had uncommitted changes (1) or not (0)";
 CM_ SG_ 200 vcu_project_on_main "if the compiled fw was from main branch (1) or not (0)";
 CM_ SG_ 200 vcu_on_time_seconds "time in seconds which the VCU has been powered on and running";
+CM_ SG_ 200 vcu_fw_version "short hash of the firmware on VCU ";
 CM_ BO_ 602 "information on the running acu firmware and system on-timer";
 CM_ SG_ 602 acu_project_is_dirty "if the compiled acu fw had uncommitted changes (1) or not (0)";
 CM_ SG_ 602 acu_project_on_main "if the compiled acu fw was from main branch (1) or not (0)";
 CM_ SG_ 602 acu_on_time_seconds "time in seconds which the acu has been powered on and running";
+CM_ SG_ 602 acu_fw_version "short hash of the firmware on ACU";
 CM_ SG_ 199 vcu_pedals_settings_MUX "mux signal for VCU pedal threshold information message";
 CM_ BO_ 235 "status of buttons on the dash";
+CM_ SG_ 235 dash_button6status "status of button6 on dash (1 = pressed)";
+CM_ SG_ 235 dash_button5status "status of button5 on dash (1 = pressed)";
+CM_ SG_ 235 dash_button4status "status of button4 on dash (1 = pressed)";
+CM_ SG_ 235 dash_button3status "status of button3 on dash (1 = pressed)";
+CM_ SG_ 235 dash_button2status "status of button2 on dash (1 = pressed)";
+CM_ SG_ 235 dash_button1status "status of button1 on dash (1 = pressed)";
 CM_ BO_ 236 "information on the running dash firmware and system on-timer";
 CM_ SG_ 236 dash_project_is_dirty "if the compiled dash fw had uncommitted changes (1) or not (0)";
 CM_ SG_ 236 dash_project_on_main "if the compiled dash fw was from main branch (1) or not (0)";
 CM_ SG_ 236 dash_on_time_seconds "time in seconds which the dash has been powered on and running";
+CM_ SG_ 236 dash_fw_version "short hash of the firmware on dash ";
 CM_ BO_ 26 "raw ADC voltage reading of module1 cells 1-6";
 CM_ BO_ 27 "raw ADC voltage reading of module1 cells 6-12";
 CM_ BO_ 42 "raw ADC voltage reading of module2 cells 1-6";

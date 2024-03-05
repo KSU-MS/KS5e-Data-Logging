@@ -3,6 +3,11 @@ close all
 % Usage:
 % 1. Load the data struct into the Workspace
 % 2. Run individual sections of the script to plot the desired data
+%% Constants
+dyno_tire_diameter = 20.5; %ish inches 
+normal_tire_diameter = 18;
+tire_diameter = normal_tire_diameter; % set to the right tire size when plotting
+gear_ratio = 10/30;
 
 %% Torque, Vehicle Speed, Current
 figure
@@ -14,7 +19,7 @@ busCurrent = S.D4_DC_Bus_Current;
 busVoltage = S.D1_DC_Bus_Voltage;
 motor_speed = S.D2_Motor_Speed;
 vehicle_speed_mph = motor_speed;
-vehicle_speed_mph(:,2) = motor_speed(:,2).*(10/30).*0.000284091.*pi.*60;
+vehicle_speed_mph(:,2) = motor_speed(:,2).*gear_ratio.*tire_diameter.*pi.*60 / 63360;
 hold on
 plot(motor_speed(:,1),motor_speed(:,2)./100);
 plot(busCurrent(:,1),busCurrent(:,2)./2);
@@ -99,6 +104,9 @@ legend({'MCU Gate Driver Board Temperature','MCU Control Board Temperature','MCU
 xlabel('Time (ms)')
 ylabel('Temperature (C)')
 title('Cooling Loop Temperature Plots')
+
+%% Torque vs RPM 
+plot_y_vs_y(S.D2_Motor_Speed,S.D2_Torque_Feedback,'Motor Speed (RPM)','Torque Feedback (Nm)','Feedback Torque vs Motor RPM')
 
 %% Accumulator Cell Temperatures
 % TODO: Add the polynomial function since the "temp" on CAN is a voltage
@@ -234,7 +242,7 @@ motorSpeed(:,2) = motorSpeed(:,2)./60; %Rotations per second
 consumption = cumtrapz(current(:,1),current(:,2));
 consumption = [current(:,1),consumption./3600];
 distance = cumtrapz(motorSpeed(:,1),motorSpeed(:,2)); %Rotations
-distance = [motorSpeed(:,1),(distance./2.9)*pi*0.4572./1000]; %Kilometers
+distance = [motorSpeed(:,1),(distance./3)*pi*(tire_diameter/39.37)./1000]; %Kilometers
 
 % Data uniqueness
 for i = 1:length(distance(:,1))
@@ -290,8 +298,85 @@ plot(uniqueCurrent, averageVoltage,'.-')
 xlabel('Current')
 ylabel('Voltage')
 title('Accumulator Voltage Drop Analysis')
-
 %% VectorNAV IMU data plot goes here
 
 
 %% Corner Node Data Plot Goes Here
+
+%% Plot function defs
+% this can plot two Y-axis vs each other
+function p = plot_y_vs_y(series1,series2,series1name,series2name,ptitle)
+    for i = 1:length(series1(:,1))
+        series1(i,1) = series1(i,1) + i/100000000;
+    end
+    for i = 1:length(series2(:,1))
+        series2(i,1) = series2(i,1) + i/100000000;
+    end
+    time2 = series2(:,1);
+    values2 = series2(:,2);
+    time1 = series1(:,1);
+    values1 = series1(:,2);
+    % Interpolate values of the second matrix onto the time points of the first matrix
+    interpolated_values2 = interp1(time2, values2, time1);
+    
+    % Plot the values
+    figure
+    hold on
+    plot(values1, interpolated_values2, '.');
+    xlabel(series1name);
+    ylabel(series2name);
+    title(ptitle);
+
+end
+%% Plot function 3d
+% This does not work well lmao
+function q = plot_three_series(series1,series2,series3,xyzlabel,ptitle)
+
+
+    for i = 1:length(series1(:,1))
+        series1(i,1) = series1(i,1) + i/100000000;
+    end
+    for i = 1:length(series2(:,1))
+        series2(i,1) = series2(i,1) + i/100000000;
+    end
+    for i = 1:length(series3(:,1))
+        series3(i,1) = series3(i,1) + i/100000000;
+    end
+   
+    time1 = series1(:,1);
+    values1 = series1(:,2);
+    time2 = series2(:,1);
+    values2 = series2(:,2);
+    time3 = series3(:,1);
+    values3 = series3(:,2);
+    % Interpolate values of the second matrix onto the time points of the first matrix
+    interpolated_values2 = interp1(time2, values2, time1);
+    interpolated_values3 = interp1(time3,values3,time1);
+    % Define the threshold value
+    threshold = 10;
+
+    % Find the indices where interpolated_values2 is above the threshold
+    indices = interpolated_values3 >= threshold;
+    filtered_values1 = values1(indices);
+    filtered_interpolated_values2 = interpolated_values2(indices);
+    filtered_values3 = interpolated_values3(indices);
+    % Plot the values in 3D
+    plot3(filtered_values1, filtered_interpolated_values2, filtered_values3, '.');
+    xlabel(xyzlabel(1));
+    ylabel(xyzlabel(2));
+    zlabel(xyzlabel(3));
+    title(ptitle);
+    % Create a meshgrid for the filtered values
+    [X, Y] = meshgrid(filtered_values1, filtered_interpolated_values2);
+    numel(filtered_values1)
+    numel(filtered_interpolated_values2)
+    % Create a matrix for the Z values
+    Z = repmat(filtered_values3, [numel(filtered_values1), numel(filtered_interpolated_values2)]);
+
+    % Create the surf plot
+    surf(X, Y, Z);
+    xlabel('Values from Matrix 1');
+    ylabel('Interpolated Values from Matrix 2');
+    zlabel('Values from Matrix 3');
+    title('3D Surface Plot of Three Matrices');
+end
