@@ -79,10 +79,10 @@ def main(args):
         logging.info(f"Setting path to test due to 'test' arg being true: {args.test}")
         parsing_folder_path='./test'
     try:
-        parsed_folder_stats = parse_folder(parsing_folder_path, dbc_file=dbc_file)
+        parsed_folder_stats = parse_folder(parsing_folder_path, dbc_file=dbc_file,get_summary=args.summary)
         logging.debug(json.dumps(parsed_folder_stats,indent=3))
         if args.summary:
-            with open(parsing_folder_path+"/parsing_info.json", 'w') as f:
+            with open(str(parsing_folder_path)+"/parsing_info.json", 'w') as f:
                 json.dump(parsed_folder_stats, f,indent=4)
                 logging.info("saved parsing summary json")
         logging.info("Finished CSV to CSV parsing.")
@@ -94,7 +94,8 @@ def main(args):
     logging.info("Beginning CSV to MAT parsing...")
     
     logging.info(PARSER_MAT_START_TEXT)
-    create_mat_success = create_mat('temp-parsed-data',parser_exe_path,parsed_folder_stats["logs"][0]["debug_info"]["start_timestamp"])
+    if not args.skipmat:
+        create_mat_success = create_mat('temp-parsed-data',parser_exe_path,parsed_folder_stats["logs"][0]["debug_info"]["start_timestamp"])
     
     if create_mat_success:
         logging.info("Finished CSV to MAT parsing.")
@@ -126,6 +127,7 @@ if __name__ == "__main__":
     parser.add_argument('--test',action="store_true",help='including this flag will make the parser target the "test" directory for folders')
     parser.add_argument('--gui',action="store_true",help="this flag will make the parser run in gui mode (NOT YET IMPLEMENTED)")
     parser.add_argument('-v','--verbose',action="store_true",help="will show debug prints (this will spam your console but show more info)")
+    parser.add_argument("--skipmat",action="store_true",help="this flag will make the parser skip matlab file creation")
     args = parser.parse_args()
     parser_logger.setup_logger(args.verbose)
     

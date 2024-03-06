@@ -9,7 +9,7 @@ class CustomFileHandler(logging.FileHandler):
         log_filename = os.path.join(log_directory, f"parserapp_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.log")
         super().__init__(log_filename)
 
-def setup_logger(verbose:bool):
+def setup_logger(verbose=False):
     # Create a logger
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)

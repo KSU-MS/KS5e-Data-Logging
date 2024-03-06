@@ -240,13 +240,13 @@ def get_parsed_log_summary(log_input_path):
     log_time_duration_seconds = log_time_duration/1000
     log_minutes, log_seconds_remainder = divmod(log_time_duration_seconds, 60)
     log_time_elapsed = f"{int(log_minutes):03}:{log_seconds_remainder:06.3f}"
-    log_stats_dict["duration"]=log_time_elapsed
+    log_stats_dict["duration"]=str(log_time_elapsed)
     for field in PARAMS:
         try:
             log_stats_dict[field] = {
-                'max': df[field].max(),
-                'min': df[field].min(),
-                'average': df[field].mean()
+                'max': str(df[field].max()),
+                'min': str(df[field].min()),
+                'average': str(df[field].mean())
             }
         except KeyError as e:
             logging.error(f"{e} key {field} not found in {log_input_path}")
@@ -376,7 +376,7 @@ def parse_file(filename, dbc: Database, dbc_ids: list):
     return {"start_timestamp":start_timestamp,"length": len(infile_readlines), "unknown_ids": unknown_ids,"input_file":infile.name,"outfile":outfile.name,"outfile2":outfile2.name}
 
 
-def parse_folder(input_path, dbc_file: cantools.db.Database):
+def parse_folder(input_path, dbc_file: cantools.db.Database, get_summary = False):
     '''
     @brief: Locates Raw_Data directory or else throws errors. Created Parsed_Data directory if not created.
             Calls the parse_file() function on each raw CSV and alerts the user of parsing progress.
@@ -427,8 +427,10 @@ def parse_folder(input_path, dbc_file: cantools.db.Database):
                 end_time = time.time()
                 logging.info(
                     f"Successfully parsed: {filename} with {length} lines in {end_time-start_time} seconds")
-                
-                parsed_log_summary = get_parsed_log_summary(parsed_file_stats["outfile2"])
+                if get_summary:
+                    parsed_log_summary = get_parsed_log_summary(parsed_file_stats["outfile2"])
+                elif not get_summary:
+                    parsed_log_summary="blank"
                 parsed_log_info={
                     "log_name":filename,
                     "parsing time":end_time-start_time,
