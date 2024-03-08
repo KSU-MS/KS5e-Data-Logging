@@ -23,11 +23,11 @@ def crawl_directory_for_csv(root_dir):
     return csv_files, valid_directories
 
 # Automatically detect the root directory as the current working directory
-root_directory = r"C:/"
+root_directory = r"D:/"
 result, valid_directories = crawl_directory_for_csv(root_directory)
 
 # Save the list of file paths to a JSON file
-output_file_path = 'path_of_csvs.json'
+output_file_path = 'path_of_csvsD.json'
 with open(output_file_path, 'w') as json_file:
     json.dump(result, json_file)
 

@@ -71,7 +71,10 @@ def get_dbc_files(path_name='dbc-files') -> cantools.db.Database:
         logging.info(
             f"dbc successfully created with {len(mega_dbc.messages)} messages")
         logging.info(f"DBC VERSION: {mega_dbc.version}")
-        checkdbcvers.check_newer_commit(checkdbcvers.repo_owner+"/"+checkdbcvers.repo_name,(mega_dbc.version.strip()))
+        try:
+            checkdbcvers.check_newer_commit(checkdbcvers.repo_owner+"/"+checkdbcvers.repo_name,(mega_dbc.version.strip()))
+        except:
+            logging.error("Failed to check dbc commit against latest")
         return mega_dbc
     else:
         logging.warning(f"error: dbc was empty! it has no messages :(")
