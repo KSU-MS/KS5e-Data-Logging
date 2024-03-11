@@ -1,6 +1,7 @@
 import pandas as pd
+import warnings
 from pandas import DataFrame
-from scipy.fft import fft, fftfreq, rfft, rfftfreq
+from scipy.signal import filtfilt, butter
 import matplotlib.pyplot as plt
 import matplotlib.ticker
 import matplotlib.dates as mdates
@@ -20,7 +21,23 @@ import json
 # TODO write a script that will generate curves of different power limting methods
     # compare torque limit, power limit, current limit
     # generate torque vs rpm for each
-    
+warnings.simplefilter(action='ignore',category=pd.errors.PerformanceWarning)
+def lpf_df(df:DataFrame,cutoffhz=10):
+    # Define the filter
+    order = 2
+    fs = 1 / (10 / 1000)  # Sampling frequency
+    nyquist = fs / 2
+    cutoff = min(0.5 * nyquist, cutoffhz)  # Desired cutoff frequency of the filter (Hz)
+    print(str(cutoff)+"Hz")
+    b, a = butter(order, cutoff / (fs / 2), btype='low')
+    for col in list(df):
+        df["filt"+col] = filtfilt(b, a, df[col])
+        # plt.plot(df.index,df["filt"+col],label="filt")
+        # plt.plot(df.index,df[col],label="normal")
+        # plt.legend()
+        # plt.show()
+    return df
+
 
 def drop_rows_from_df(df: DataFrame, column_name, min, max):
     newdf = df[(df[column_name] >= min) & (df[column_name] <= max)]
@@ -29,16 +46,16 @@ def drop_rows_from_df(df: DataFrame, column_name, min, max):
     return newdf
 
 
-def resample_data(df: DataFrame, time_column_name: str,resample_interval=10):
+def resample_data(df: DataFrame, time_column_name = None,resample_interval=10,plots_to_compare=False):
     df = df
     # Assuming 'df' is your original DataFrame with 'Time' as epoch time in milliseconds
-    df[time_column_name] = pd.to_datetime(
-        df[time_column_name], unit='ms')  # Convert epoch time to datetime
-    df.set_index(time_column_name, inplace=True)  # Set 'Time' as index
+    if time_column_name is not None:
+        df[time_column_name] = pd.to_datetime(
+            df[time_column_name], unit='ms')  # Convert epoch time to datetime
+        df.set_index(time_column_name, inplace=True)  # Set 'Time' as index
     df = df.interpolate()
     # df.to_csv('interpdata.csv')
     # Assuming 'D3_VAB_Vd_Voltage' is the column containing the signal
-    plot_to_compare = False
 
     df = df[~df.index.duplicated()]
     # Resample to 100ms intervals and forward fill missing values
@@ -47,24 +64,25 @@ def resample_data(df: DataFrame, time_column_name: str,resample_interval=10):
 
     # Save resampled DataFrame to a file
     # df_resampled.to_csv('resampled_data.csv')
-    if plot_to_compare:
-        plt.figure(figsize=(12, 6))
-        plt.subplot(2, 1, 1)
-        plt.plot(df.index, df['D2_Torque_Feedback'], label='Original')
-        plt.title('D2_Torque_Feedback vs Time (Original)')
-        plt.xlabel('Time')
-        plt.ylabel('D2_Torque_Feedback')
-        plt.legend()
-        # # Plot resampled data
-        plt.subplot(2, 1, 2)
-        plt.plot(df_resampled.index,
-                 df_resampled['D2_Torque_Feedback'], label='Resampled')
-        plt.title('D2_Torque_Feedback vs Time (Resampled)')
-        plt.xlabel('Time')
-        plt.ylabel('D2_Torque_Feedback')
-        plt.legend()
-        plt.tight_layout()
-        # plt.show()
+    if plots_to_compare:
+        for series in list(df_resampled):
+            if series in list(df):
+                plt.plot(df.index, df[series], label='Original')
+                plt.title(series + ' vs Time (Original)')
+                plt.xlabel('Time')
+                plt.ylabel(series)
+                plt.legend()
+                # # Plot resampled data
+                plt.plot(df_resampled.index,
+                        df_resampled[series], label='Resampled',alpha=0.8)
+                plt.title(series+' vs Time (Resampled)')
+                plt.xlabel('Time')
+                plt.ylabel(series)
+                plt.legend()
+                plt.tight_layout()
+                plt.show()
+            else:
+                logging.error(f"{series} not found in {list(df)}")
     # Show plots
 
     return df_resampled
@@ -117,11 +135,10 @@ def get_eff_curve_patches(dfs: "list[DataFrame]", names: "list[str]", ax=plt.gca
 def annot_max(df: DataFrame, seriesname, ax=None):
     ymax = df[seriesname].max()
     xmax = df[seriesname].idxmax()
-    print("balls")
     if type(xmax) != np.int64:
         xmax = xmax.to_numpy()
 
-    text = "max={:.3f}v".format(ymax)
+    text = "max={:.2f}v".format(ymax)
     if not ax:
         ax = plt.gca()
     bbox_props = dict(boxstyle="square,pad=0.3", fc="w", ec="k", lw=0.72)
@@ -159,7 +176,7 @@ def main(pick_folder=True, crawl_paths=False):
         real_list.add(folder)
     elif crawl_paths:
         # Specify the path to the exported JSON file
-        json_file_path = 'path_of_csvsD.json'
+        json_file_path = r'C:\Users\Matthew Samson\source\repos\KS5e-Data-Logging\6eLogsfiles.json'
 
         # Load the list of paths from the JSON file
         with open(json_file_path, 'r') as json_file:
@@ -184,15 +201,27 @@ def main(pick_folder=True, crawl_paths=False):
             
     df_list = []
     for folder in real_list:
-        outfolder = r'D:/MatthewS/motor_analysis_fsae/'
+        outfolder = r'D:/MatthewS/motor_analysis_fsae/round2/6e/'
         outfolder_set = False
         for filename in os.listdir(folder):
+            logging.info(f"Folder: {folder}")
             if filename.endswith('.csv') or filename.endswith('.CSV'):
                 file_path = os.path.join(folder, filename)
                 try:
                     df = pd.read_csv(file_path)
+                    # df = df[['D2_Motor_Speed','D2_Torque_Feedback','Time','D1_VSM_State','D2_Motor_Speed','D2_Torque_Feedback','D1_Commanded_Torque','D4_Iq','D3_Id','D1_DC_Bus_Voltage','D4_DC_Bus_Current']]
                     if ("D2_Torque_Feedback") not in list(df):
+                        logging.info(f"Skipping {file_path} because no torque feedback")
                         continue
+                    if df["D2_Motor_Speed"].max() < 2000:
+                        logging.info(f"Skipping {file_path} because motor speed less than 2000 max")
+                        continue
+                    # if df["D2_Torque_Feedback"].max() < 200:
+                    #     logging.info(f"Skipping {file_path} because torque feedback less than 200")
+                    #     continue
+                    # if df["D1_Commanded_Torque"].max() < 200:
+                    #     logging.info(f"Skipping {file_path} because torque command max less than 200")
+                    #     continue
                     try:
                         df = resample_data(df, "Time")
                     except KeyError as e:
@@ -205,10 +234,12 @@ def main(pick_folder=True, crawl_paths=False):
                         continue
                     try:
                         df = drop_rows_from_df(
-                            df, "D2_Motor_Speed", -2000, 7000)
+                            df, "D2_Motor_Speed", -10, 7000)
                     except KeyError as e:
                         logging.error(f"Key missing {e} in {filename}")
                         continue
+                    df = lpf_df(df)
+
                     try:
                         df = drop_rows_from_df(
                             df, "D2_Torque_Feedback", 0, 300)
@@ -243,7 +274,10 @@ def main(pick_folder=True, crawl_paths=False):
 
                     for index,run_data in enumerate(runs_dfs):
                         earliest_timestamp = run_data.index.min()
-
+                        # if run_data["D2_Motor_Speed"].max() < 2000:
+                        #     continue
+                        # if run_data["D1_Commanded_Torque"].max() < 200:
+                        #     continue
                         # Set up figure
                         fig = plt.figure(figsize=(16.2, 9.1))
                         ax1 = fig.add_subplot(4, 4, (1, 12))
@@ -260,9 +294,9 @@ def main(pick_folder=True, crawl_paths=False):
                         ax1.text(3200, 190, "94%+", fontsize=12)
                         ax1.text(3200, 220, "90-94%+", fontsize=12)
                         ax1.text(2400, 23, "86-90%+", fontsize=12)
-                        ax1.scatter(run_data['D2_Motor_Speed'], run_data['D1_Commanded_Torque'],
+                        ax1.scatter(run_data['filtD2_Motor_Speed'], run_data['filtD1_Commanded_Torque'],
                                     marker='o', label="Command Torque", c='blue', alpha=0.9)
-                        ax1.scatter(run_data['D2_Motor_Speed'], run_data['D2_Torque_Feedback'],
+                        ax1.scatter(run_data['filtD2_Motor_Speed'], run_data['filtD2_Torque_Feedback'],
                                     marker='o', label="Feedback Torque", c='aqua', alpha=0.9)
 
                         ax1.set_xlabel("RPM")
@@ -333,16 +367,17 @@ def main(pick_folder=True, crawl_paths=False):
                                 logging.debug("lmao")
                             outfolder_set = True
                         export_filename = f"kt{slope:.2f}_{file_friendly_timestamp}_{file_friendly_filename}"
-                        # plt.savefig(os.path.join(outfolder, export_filename+".png"))
+                        export_filename += "_run_"+str(index) if len(runs_dfs) > 1 else ""
+                        plt.savefig(os.path.join(outfolder, export_filename+".png"))
                         # plt.close()
                         # run_data.to_csv(os.path.join(
                         #     outfolder, export_filename+".csv"), sep=",")
                         # mng = plt.get_current_fig_manager()
                         # mng.full_screen_toggle()
-                        plt.show()
+                        # plt.show()
                         # run_data_list.append(run_data)
 
-                except ValueError as e:
+                except (ValueError,KeyError) as e:
                     logging.error(f"error with {file_path}, {e}")
         # big_df = pd.concat(df_list)
         # fig, (ax1, ax2) = plt.subplots(2, figsize=(16.2, 9.1))
@@ -407,4 +442,4 @@ def main(pick_folder=True, crawl_paths=False):
 
 
 if __name__ == "__main__":
-    main()
+    main(pick_folder=True,crawl_paths=False)
