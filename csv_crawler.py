@@ -23,16 +23,26 @@ def crawl_directory_for_csv(root_dir):
     return csv_files, valid_directories
 
 # Automatically detect the root directory as the current working directory
-root_directory = r"D:/"
+root_directory = r"D:/MatthewS/ks6e_logs/"
 result, valid_directories = crawl_directory_for_csv(root_directory)
 
 # Save the list of file paths to a JSON file
-output_file_path = 'path_of_csvsD.json'
-with open(output_file_path, 'w') as json_file:
+output_file_path = input("What to name the output file?")
+with open(output_file_path+"files.json", 'w') as json_file:
     json.dump(result, json_file)
+with open(output_file_path+"paths.json", 'w') as json_file:
+    json.dump(valid_directories,json_file)
 
 print(f"List of CSV files meeting the conditions saved to {output_file_path}")
 
-print("\nList of unique directories containing valid CSV files:")
-for directory in valid_directories:
-    print(directory)
+root_directory = r"C:/"
+result, valid_directories = crawl_directory_for_csv(root_directory)
+
+# Save the list of file paths to a JSON file
+output_file_path = input("What to name the output file?")
+with open(output_file_path+"files.json", 'w') as json_file:
+    json.dump(result, json_file)
+with open(output_file_path+"paths.json", 'w') as json_file:
+    json.dump(valid_directories,json_file)
+
+print(f"List of CSV files meeting the conditions saved to {output_file_path}")

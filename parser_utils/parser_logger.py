@@ -37,4 +37,4 @@ def setup_logger(verbose=False):
     logger.debug("logger initialized!")
 
 # Set up the logger when this module is imported
-# setup_logger()
+setup_logger()
