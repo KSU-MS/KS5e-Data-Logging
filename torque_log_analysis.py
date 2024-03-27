@@ -213,9 +213,9 @@ def main(pick_folder=True, crawl_paths=False):
                     if ("D2_Torque_Feedback") not in list(df):
                         logging.info(f"Skipping {file_path} because no torque feedback")
                         continue
-                    if df["D2_Motor_Speed"].max() < 2000:
-                        logging.info(f"Skipping {file_path} because motor speed less than 2000 max")
-                        continue
+                    # if df["D2_Motor_Speed"].max() < 1000:
+                    #     logging.info(f"Skipping {file_path} because motor speed less than 1000 max")
+                    #     continue
                     # if df["D2_Torque_Feedback"].max() < 200:
                     #     logging.info(f"Skipping {file_path} because torque feedback less than 200")
                     #     continue
@@ -228,7 +228,7 @@ def main(pick_folder=True, crawl_paths=False):
                         logging.error(f"Key missing {e} in {filename}")
                         continue
                     try:
-                        df = drop_rows_from_df(df, "D1_VSM_State", 6, 7)
+                        df = drop_rows_from_df(df, "D1_VSM_State", 4, 7)
                     except KeyError as e:
                         logging.error(f"Key missing {e} in {filename}")
                         continue
@@ -238,11 +238,11 @@ def main(pick_folder=True, crawl_paths=False):
                     except KeyError as e:
                         logging.error(f"Key missing {e} in {filename}")
                         continue
-                    df = lpf_df(df)
-
+                    df = lpf_df(df,100)
+                    realistic_torque_max = df['D1_Commanded_Torque'].max()
                     try:
                         df = drop_rows_from_df(
-                            df, "D2_Torque_Feedback", 0, 300)
+                            df, "D2_Torque_Feedback", 0, realistic_torque_max)
                     except KeyError as e:
                         logging.error(f"Key missing {e} in {filename}")
                         continue
@@ -284,11 +284,7 @@ def main(pick_folder=True, crawl_paths=False):
                         ax2 = fig.add_subplot(4, 4, (13, 14))
                         ax3 = fig.add_subplot(4, 4, (15, 16))
                         
-                        # Plot eff. regions first so they are on the bottom
-                        patches = get_eff_curve_patches(eff_curve_dfs,eff_curve_names,ax1)
-                        for i in patches:
-                            logging.debug(patches[i][0])
-                            ax1.add_patch(patches[i][0])
+
                         ax1.text(3270, 95, "96%+", fontsize=12)
                         ax1.text(2800, 155, "95%+", fontsize=12)
                         ax1.text(3200, 190, "94%+", fontsize=12)
@@ -326,7 +322,7 @@ def main(pick_folder=True, crawl_paths=False):
                             iq_rms, run_data['D2_Torque_Feedback'])
                         line = slope * iq_rms + intercept
                         ax2.plot(iq_rms, line, color='tab:red', linestyle='--',
-                                label=f'Linear Fit: y = {slope:.2f}x + {intercept:.2f}')
+                                label=f'Linear Fit: y = {slope:.2f}x + {intercept:.2f} (r:{r_value} p: {p_value} err: {std_err})')
 
                         ax2.set_xlabel('Q-axis Current (RMS)')
                         ax2.set_ylabel('Torque Feedback')
@@ -338,7 +334,13 @@ def main(pick_folder=True, crawl_paths=False):
                                     label="DC Bus Current (A)", marker='.')
                         ax3.scatter(
                             run_data.index, run_data["D2_Motor_Speed"]/10, label="RPM/10", marker='.')
-
+                        
+                        # Plot eff. regions last so they are on the top
+                        patches = get_eff_curve_patches(eff_curve_dfs,eff_curve_names,ax1)
+                        for i in patches:
+                            logging.debug(patches[i][0])
+                            ax1.add_patch(patches[i][0])
+                            
                         annot_max(run_data, "D1_DC_Bus_Voltage", ax=ax3)
                         annot_min(run_data, "D1_DC_Bus_Voltage", ax=ax3)
 
@@ -368,7 +370,13 @@ def main(pick_folder=True, crawl_paths=False):
                             outfolder_set = True
                         export_filename = f"kt{slope:.2f}_{file_friendly_timestamp}_{file_friendly_filename}"
                         export_filename += "_run_"+str(index) if len(runs_dfs) > 1 else ""
-                        plt.savefig(os.path.join(outfolder, export_filename+".png"))
+                        plt.close()
+                        plt.plot(run_data.index,run_data['D2_Motor_Speed'],marker='.')
+                        plt.plot(run_data.index,run_data['D1_Commanded_Torque'],marker='.')
+                        plt.title(title_str)
+                        # plt.show()
+                        run_data.to_csv(f"{file_friendly_filename}_run_{(index)}.csv")
+                        # plt.savefig(os.path.join(outfolder, export_filename+".png"))
                         # plt.close()
                         # run_data.to_csv(os.path.join(
                         #     outfolder, export_filename+".csv"), sep=",")

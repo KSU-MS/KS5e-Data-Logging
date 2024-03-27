@@ -21,15 +21,22 @@ class Motor:
         self.Rs = 0.0071 # Ohm
         self.poles = 10
         self.Fl = 0.03737 # Wb
-
+        
+    def __str__(self) -> str:
+        return f"{self.name} {self.max_rate} {self.max_torque} {self.max_phase_current} Id max: {self.I_dmax} Iq max: {self.I_qmax} Ld: {self.Ld} gain: {self.Ld_gain} Lq: {self.Lq} gain: {self.Lq_gain} Rs: {self.Rs} Poles: {self.poles} Flux: {self.Fl}"
+    
     def get_torque(self, I_d, I_q):
         Ld, Lq = self.get_inductance(I_d, I_q)
+        return 3/2*self.poles*(self.Fl*I_q + (Ld-Lq)*I_d*I_q)
         return 3/2 * self.poles * I_q * (self.Fl + I_d * (Ld - Lq))
-    
+        # return 1.1 *(I_q / np.sqrt(2))
     def get_inductance(self, I_d, I_q):
         return self.Ld + I_d * self.Ld_gain, self.Lq + I_d * self.Lq_gain # get the change in inductance due to Id current
     
-    def get_qd_currents(self, speed, torque_req, voltage, use_mtpa=False):
+    def get_qd_currents(self, speed, torque_req, voltage, use_mtpa=False,powerlim=None):
+        if powerlim and speed>0:
+            # print(f"powerlimited: {torque_req} {(powerlim*9.5488/speed)}")
+            torque_req=min((powerlim*9.5488/speed),torque_req)
         # print(f"Speed: {speed} Torque req: {torque_req} Voltage: {voltage}")
         w = speed * 2 * np.pi / 60
         w_e = w * self.poles
@@ -46,7 +53,7 @@ class Motor:
             I_q_mtpa = torque_req * 2 / (3 * self.poles * self.Fl)
             I_d_mtpa = 0
         w_base = (1/self.poles) * (v_max / np.sqrt((self.Lq * I_q_mtpa)**2 + (self.Fl + self.Ld * I_d_mtpa)**2))
-
+        I_q_mtpa = min(I_q_mtpa,self.I_qmax)
         # get the smallest root that is greater than 0
         # Binary search for max T_ref with real solutions
         T_ref_low = 0  # you may adjust this based on any given bounds
@@ -197,12 +204,12 @@ EMRAX228MV.I_dmax = 221 # A
 EMRAX228MV.I_qmax = 453 # A
 
 EMRAX228HV = Motor('228HV')
-EMRAX228HV.Ld = 0.000225
-EMRAX228HV.Lq = 0.000230
-EMRAX228HV.Rs = 0.01548 #0.0071
-EMRAX228HV.max_phase_current = 235.0 * math.sqrt(2)
+EMRAX228HV.Ld = 0.000177
+EMRAX228HV.Lq = 0.000183
+EMRAX228HV.Rs = 0.018 #0.0071
+EMRAX228HV.max_phase_current = 240.0 * math.sqrt(2)
 EMRAX228HV.max_rate = 6500.0
-EMRAX228HV.Fl = 0.05728
+EMRAX228HV.Fl = 0.0542
 EMRAX228HV.poles = 10.0
 EMRAX228HV.I_dmax = 150 # A
 EMRAX228HV.I_qmax = 339 # A
@@ -232,43 +239,44 @@ EMRAX208MV.max_rate = 7000
 EMRAX208MV.Fl = 0.02338
 EMRAX208MV.poles = 10
 EMRAX208MV.I_dmax = 425 # From cascadia setup, probably wrong
-EMRAX208MV.I_qmax = 425 # From cascadia setup
+EMRAX208MV.I_qmax = 425 # From cascadia setup (not wrong)
 
-EMRAX_MOTORS = [EMRAX228MV,EMRAX228HV,EMRAX208MV,EMRAX208HV]
+EMRAX_MOTORS = [EMRAX228MV,EMRAX228HV,EMRAX208MV,EMRAX208HV] # 228mv,228hv,208mv, 208hv
 
 def calcc(w, t, v, motor:Motor):
     Id, Iq, T, wbase, v_max = motor.get_qd_currents(w, t, v)
     return Id, Iq, T, wbase * 60 / (2 * np.pi), v_max
 
+def pdcalcc(row,rpmkey,torquekey,voltagekey,motor:Motor):
+    id,iq,torque,speed,vmax = calcc(row[rpmkey],row[torquekey],row[voltagekey],motor=motor)
+    return pd.Series([id,iq,torque,speed,vmax])
 def generate_power_curve(motor:Motor,maxtorque:int,maxrpm:int,rpmincrement:int,voltage:int):
     current_motor = motor
+    print(motor)
     df = pd.DataFrame()
 
-    df['w'] = range(0, maxrpm, rpmincrement)
+    df['w'] = range(1, maxrpm, rpmincrement)
     df['t'] = maxtorque
     df['v'] = voltage
-    theoretical_id = current_motor.name+'id_t'
-    theoretical_iq = current_motor.name+'iq_t'
-    theoretical_torque = current_motor.name + 't_t'
-    theoretical_speed = current_motor.name+'w_t'
-    theoretical_vmax= current_motor.name+'v_max'
-    df[theoretical_id] = np.zeros(len(df))
-    df[theoretical_iq] = np.zeros(len(df))
-    df[theoretical_torque] = np.zeros(len(df))
-    df[theoretical_speed] = np.zeros(len(df))
-    df[theoretical_vmax] = np.zeros(len(df))
-
-    for i in range(len(df)):
-        df[theoretical_id][i], df[theoretical_iq][i], df[theoretical_torque][i], df[theoretical_speed][i], df[theoretical_vmax][i] = calcc(df['w'][i], df['t'][i], df['v'][i],current_motor)
-    df[motor.name+"power"] = df[theoretical_torque] * df['w'] / 9548.8
+    theoretical_id = 'id_t'
+    theoretical_iq = 'iq_t'
+    theoretical_torque = 't_t'
+    theoretical_speed = 'w_t'
+    theoretical_vmax= 'v_max'
+    df[[theoretical_id,theoretical_iq,theoretical_torque,theoretical_speed,theoretical_vmax]] = df.apply(pdcalcc,rpmkey='w',torquekey='t',voltagekey='v',motor=current_motor,axis=1)
+    df["power"] = df[theoretical_torque] * df['w'] / 9.5488
     return df
-def main():
+
+def generate_all_motors(voltage:float=302.4):
     data_list = {
-        "emrax208mvtorquecurve":generate_power_curve(EMRAX208MV,160,7000,10,300),
-        "emrax208hvtorquecurve":generate_power_curve(EMRAX208HV,160,7000,10,300),
-        "emrax228mvtorquecurve":generate_power_curve(EMRAX228MV,240,6500,10,300),
-        "emrax228hvtorquecurve":generate_power_curve(EMRAX228HV,240,6500,10,300)
-        }
+    "emrax208mvtorquecurve":generate_power_curve(EMRAX208MV,160,7000,10,voltage),
+    "emrax208hvtorquecurve":generate_power_curve(EMRAX208HV,160,7000,10,voltage),
+    "emrax228mvtorquecurve":generate_power_curve(EMRAX228MV,230,6500,10,voltage),
+    "emrax228hvtorquecurve":generate_power_curve(EMRAX228HV,230,6500,10,voltage)
+    }
+    return data_list
+def main():
+    data_list = generate_all_motors()
     for key,value in data_list.items():
         value.to_csv(key+".csv")
         

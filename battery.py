@@ -2,12 +2,22 @@ import numpy as np
 import pandas as pd
 
 class battery:
-    def __init__(self,capacity_voltage_curve_path:str) -> None:
+    def __init__(self,capacity_voltage_curve_path:str,capacity=2500,resistance=32.1/1000,c_rate = 14) -> None:
+        """create an instance of a single battery cell
+
+        Args:
+            capacity_voltage_curve_path (str): filepath to csv that describes capacity to voltage relationship
+            capacity (int): capacity in mah
+            resistance (float): resistance in ohms
+        """
         self.maxv = 4.2 # full capacity
+        self.nomv = 3.6
         self.minv = 2.0 # no capacity
         self.voltage = 4.2 # start at full charge
-        self.capacity = 2500 # milliamp-hours
-        self.resistance =  4.8 / 1000 #internal resistance in ohms
+        self.maxcapacity = capacity # keep track of the full charge capacity
+        self.capacity = capacity # milliamp-hours
+        self.maxdischarge = c_rate * capacity/1000 # peak current in amps
+        self.resistance =  resistance #internal resistance in ohms
         batteryData = pd.read_csv(capacity_voltage_curve_path)
         coeffs = np.polyfit(batteryData['Ah'],batteryData['Voltage'],8)
         self.voltageUpdateFunction = np.poly1d(coeffs)
@@ -17,6 +27,7 @@ class battery:
             self.voltage = self.voltageUpdateFunction(self.capacity)
         else:
             self.voltage = 2.5
+        # print(f"Cell Voltage: {self.voltage}")
         return self.voltage
     
     def discharge(self,current,time):
@@ -56,14 +67,19 @@ class battery:
         return self.voltage - voltage_sag
         
 class batteryPack:
-    def __init__(self,battery:battery,parallelCount:int,seriesCount:int) -> None:
+    def __init__(self,battery:battery,parallelCount:int,seriesCount:int,name:str = None) -> None:
         self.cell = battery
         self.parallelCount = parallelCount
         self.seriesCount = seriesCount
         self.cellCount = self.parallelCount * self.seriesCount
         self.voltage = battery.voltage * self.seriesCount
-        self.capacity = battery.capacity *self.parallelCount
+        self.capacity = battery.capacity * self.parallelCount
+        self.maxdischarge = battery.maxdischarge * self.parallelCount
+        self.name = name
         
+    def __str__(self): 
+        return f"{self.name} {self.seriesCount}S {self.parallelCount}P, {self.parallelCount * self.cell.maxcapacity/1000}Ah, Max {self.cell.maxv * self.seriesCount:.2f}V, Nominal {self.cell.nomv * self.seriesCount}V"   
+    
     def updateVoltage(self):
         self.cell.updateVoltage()
         self.voltage = self.cell.voltage * self.seriesCount
@@ -78,12 +94,23 @@ class batteryPack:
     
     def getInstantaneousVoltage(self,current):
         self.updateVoltage()
-        sagged_cell_v = self.cell.getInstantaneousVoltage(current)
+        sagged_cell_v = self.cell.getInstantaneousVoltage(current/self.parallelCount)
         return sagged_cell_v * self.seriesCount
     
-lghe2 = battery(r'lgHE2ahCurve.csv')
-ks6eacc = batteryPack(lghe2,8,72)
-
-#some tests
-
-lghe2.capacity
+    def getMaxPowerOut(self):
+        current_limit = self.maxdischarge
+        real_max = current_limit * (self.getInstantaneousVoltage(current_limit))
+        pack_resistance = self.cell.resistance / self.parallelCount
+        pack_resistance *= self.seriesCount
+        theoretical_max = (self.getInstantaneousVoltage(0)**2)/(4*pack_resistance)
+        return real_max
+class cell_models:
+    lgHE2= battery(r'lgHE2ahCurve.csv')
+    # THis curve is not real, I just adjusted the points of the HE2 curve
+    cosmx= battery(r'COSMXahCurve.csv',capacity=13000,resistance=1.5/1000,c_rate=25)
+class batt_models:
+    energus250v = batteryPack(cell_models.lgHE2,8,60,'ENERGUS60s8p')
+    energus300v = batteryPack(cell_models.lgHE2,8,72,'ENERGUS72s8p')
+    cosmx300v = batteryPack(cell_models.cosmx,2,72,'COSMX72s2p')
+    cosmx400v = batteryPack(cell_models.cosmx,1,96,'COSMX96s1p')
+    cosmx600v= batteryPack(cell_models.cosmx,1,144,'COSMX144s1p')

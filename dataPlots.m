@@ -318,11 +318,14 @@ function p = plot_y_vs_y(series1,series2,series1name,series2name,ptitle)
     values1 = series1(:,2);
     % Interpolate values of the second matrix onto the time points of the first matrix
     interpolated_values2 = interp1(time2, values2, time1);
-    
+    threshold = 6000;
+    indices = values1 <= threshold;
+    filtered_values1 = values1(indices);
+    filtered_interpolated_values2 = interpolated_values2(indices);
     % Plot the values
     figure
     hold on
-    plot(values1, interpolated_values2, '.');
+    plot(filtered_values1, filtered_interpolated_values2, '.');
     xlabel(series1name);
     ylabel(series2name);
     title(ptitle);
