@@ -1,4 +1,4 @@
-VERSION "480b0af
+VERSION "057a01b
 "
 
 
@@ -56,8 +56,8 @@ BO_ 202 VCU_BOARD_READINGS_TWO: 8 vcu
  SG_ VCU_SDC_VOLTAGE : 0|16@1+ (1,0) [0|65535] "bits" Vector__XXX
 
 BO_ 198 VCU_WHEELSPEED_READINGS: 8 vcu
- SG_ RPM_FR : 16|16@1- (1,0) [-32768|32767] "rpm" Vector__XXX
- SG_ RPM_FL : 0|16@1- (1,0) [-32768|32767] "rpm" Vector__XXX
+ SG_ vcu_rpm_front_right : 16|16@1- (1,0) [-32768|32767] "rpm" Vector__XXX
+ SG_ vcu_rpm_front_left : 0|16@1- (1,0) [-32768|32767] "rpm" Vector__XXX
 
 BO_ 195 VCU_STATUS: 7 vcu
  SG_ VCU_DISTANCE_TRAVELLED : 40|16@1+ (1,0) [0|65535] "meters" Vector__XXX
@@ -89,6 +89,19 @@ BO_ 200 vcu_firmware_version: 8 vcu
  SG_ vcu_project_on_main : 48|1@1+ (1,0) [0|1] "" Vector__XXX
  SG_ vcu_on_time_seconds : 32|16@1+ (1,0) [0|65535] "seconds" Vector__XXX
  SG_ vcu_fw_version : 0|32@1+ (1,0) [0|4294967295] "" Vector__XXX
+
+BO_ 600 acu_shutdown_status: 7 acu
+ SG_ acu_imd_pwm_duty : 48|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ acu_imd_pwm_frequency : 40|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ acu_bms_gpio_state : 32|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ acu_imd_gpio_state : 24|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ acu_bms_relay_state : 16|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ acu_imd_relay_state : 8|1@1+ (1,0) [0|1] "" Vector__XXX
+
+BO_ 601 acu_board_voltage_readings: 3 acu
+ SG_ acu_5v_voltage : 16|8@1+ (0.01294,0) [0|255] "" Vector__XXX
+ SG_ acu_sdc_voltage : 8|8@1+ (0.01294,0) [0|255] "" Vector__XXX
+ SG_ acu_glv_voltage : 0|8@1+ (0.01294,0) [0|255] "" Vector__XXX
 
 BO_ 602 acu_firmware_version: 8 acu
  SG_ acu_project_is_dirty : 56|1@1+ (1,0) [0|1] "" Vector__XXX
@@ -437,8 +450,8 @@ CM_ SG_ 202 VCU_AIN9_VOLTAGE "VCU pcb non specific analog channel";
 CM_ SG_ 202 VCU_SDC_CURRENT "VCU PCB current sense of shutdown circuit";
 CM_ SG_ 202 VCU_SDC_VOLTAGE "VCU pcb voltage sense of the shutdown circuit input";
 CM_ BO_ 198 "VCU wheel speed sensor readings";
-CM_ SG_ 198 RPM_FR "front right wheel speed sensor";
-CM_ SG_ 198 RPM_FL "front left wheel speed sensor";
+CM_ SG_ 198 vcu_rpm_front_right "front right wheel speed sensor";
+CM_ SG_ 198 vcu_rpm_front_left "front left wheel speed sensor";
 CM_ BO_ 195 "Vehicle Control Unit Status message";
 CM_ SG_ 195 VCU_DISTANCE_TRAVELLED "distance travelled in current driving session";
 CM_ SG_ 195 VCU_TORQUE_MODE "VCU torque mode setting ";
@@ -468,6 +481,17 @@ CM_ SG_ 200 vcu_project_is_dirty "if the compiled fw had uncommitted changes (1)
 CM_ SG_ 200 vcu_project_on_main "if the compiled fw was from main branch (1) or not (0)";
 CM_ SG_ 200 vcu_on_time_seconds "time in seconds which the VCU has been powered on and running";
 CM_ SG_ 200 vcu_fw_version "short hash of the firmware on VCU ";
+CM_ BO_ 600 "information on IMD and BMS shutdown circuit relays, as well as IMD diagnostic info";
+CM_ SG_ 600 acu_imd_pwm_duty "duty cycle of IMD: ~5% on normal conditions";
+CM_ SG_ 600 acu_imd_pwm_frequency "PWM frequency of the IMD: 10hz on normal operation";
+CM_ SG_ 600 acu_bms_gpio_state "Status of the BMS ENABLE output: 1 is OK, 0 is FAULTED";
+CM_ SG_ 600 acu_imd_gpio_state "Status of the IMD OKHS output: 1 is OK, 0 is FAULTED";
+CM_ SG_ 600 acu_bms_relay_state "Status of the BMS relay as sensed by the ACU: 1 is closed, 0 is open";
+CM_ SG_ 600 acu_imd_relay_state "Status of the IMD relay as sensed by the ACU: 1 is closed, 0 is open";
+CM_ BO_ 601 "ACU voltage measurements";
+CM_ SG_ 601 acu_5v_voltage "ACU voltage reading";
+CM_ SG_ 601 acu_sdc_voltage "ACU shutdown circuit voltage reading";
+CM_ SG_ 601 acu_glv_voltage "ACU GLV system voltage reading";
 CM_ BO_ 602 "information on the running acu firmware and system on-timer";
 CM_ SG_ 602 acu_project_is_dirty "if the compiled acu fw had uncommitted changes (1) or not (0)";
 CM_ SG_ 602 acu_project_on_main "if the compiled acu fw was from main branch (1) or not (0)";

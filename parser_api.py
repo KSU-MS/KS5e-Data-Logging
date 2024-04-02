@@ -322,7 +322,7 @@ def parse_file(filename, dbc: Database, dbc_ids: list):
             # Strip trailing end of line/file characters that may cause bad parsing
             raw_message = raw_message[:(int(length) * 2)]
             # Sometimes messages come truncated if 0s on the left. Append 0s so field-width is 16.
-            raw_message = raw_message.zfill(16)
+            raw_message = raw_message.zfill(int(length)*2)
             # Get actual message, referencing our DBC file and ID lists
             message_bytearray = bytearray.fromhex(raw_message)
             parsed_message = parse_message_to_cantools_msg(
