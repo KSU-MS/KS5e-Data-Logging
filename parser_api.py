@@ -181,13 +181,15 @@ def parse_ids_used_in_log(filename, dbc_for_parsing: cantools.db.Database):
     log_df = pd.read_csv(filename)
     log_ids = log_df["msg.id"].unique()
     for id in log_ids:
-        id_as_int = int(id, 16)
         try:
+            id_as_int = int(id, 16)
             can_frame = dbc_for_parsing.get_message_by_frame_id(id_as_int)
             for can_signal in can_frame.signals:
                 header_list.append(can_signal.name)
         except KeyError as e:
             unknown_list.append(id)
+        except Exception as e:
+            logging.error(f"Fuck this: {e}")
 
     unknown_list = list(OrderedDict.fromkeys(unknown_list))
     header_list = list(OrderedDict.fromkeys(header_list))
@@ -551,11 +553,11 @@ def get_time_elapsed(frames=[]):
                 df['time_elapsed'] = pd.Series(time_delta)
                 df_list.append(df)
             else:
-                logging.debug("Frame " + skip +
+                logging.debug("Frame " + str(skip) +
                                     "was skipped in elapsed time calculation.")
                 continue
-    except:
-        logging.error('error: Process failed at step 3.')
+    except Exception as e:
+        logging.error(f'error: Process failed at step 3. {e}')
         return None
 
     logging.info('Step 3: calculated elapsed time')
